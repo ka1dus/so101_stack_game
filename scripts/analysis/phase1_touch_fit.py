@@ -122,3 +122,32 @@ for roll in (0.0, 90.0, -90.0):
         sol = least_squares(lambda x: rr(x)[0], np.zeros(len(joints)+3), diff_step=1e-3)
         _, P = rr(sol.x); z = np.array([P[l][2] for l in P])
         print(f"roll {roll:+5.0f} free={joints or 'tilt only'}: cost {sol.cost:6.1f}  heights range {np.ptp(z)*1e3:4.1f} std {z.std()*1e3:3.1f} mm  x={np.round(sol.x[:-1],2)}")
+
+print("\n################ with M1: jaw tips 24 mm above the table at home (notes/phase1_measurements.yaml)")
+HOME_Q = dict(shoulder_pan=-3.16, shoulder_lift=-87.30, elbow_flex=96.79, wrist_flex=48.35, wrist_roll=8.66, gripper=0.74)
+for roll in (0.0, 90.0, -90.0):
+    for joints in (["shoulder_lift","elbow_flex","wrist_flex"],):
+        def rr(x):
+            offs = dict(zip(joints, x[:len(joints)])); offs["wrist_roll"] = roll
+            rx, ry, zt = x[len(joints):]; R = Rxy(rx, ry)
+            P = {p["label"]: R @ (fk(p["joints"], offs)[1] - np.r_[pan_xy,0]) for p in pts}
+            r = [(P[l][2]-zt)*1e3/2.0 for l in P]
+            def side(a,b): return np.linalg.norm(P[a][:2]-P[b][:2])*100
+            for pre,(L,W) in (("supply",RUL["sup"]),("stack",RUL["stk"])):
+                c=[f"{pre}_corner_{i}" for i in (1,2,3,4)]
+                r += [(side(c[0],c[1])-L)/0.5, (side(c[2],c[3])-L)/0.5, (side(c[1],c[2])-W)/0.5, (side(c[3],c[0])-W)/0.5]
+            u=P["table_left_edge_far"][:2]-P["table_left_edge_near"][:2]; v=P["table_right_edge_far"][:2]-P["table_right_edge_near"][:2]
+            r.append((np.degrees(np.arccos(abs(u@v)/np.linalg.norm(u)/np.linalg.norm(v)))-90)/2.0)
+            zh = (R @ (fk(HOME_Q, offs)[1] - np.r_[pan_xy,0]))[2]
+            r.append((zh - zt - 0.024)*1e3/2.0)            # M1, ruler +/- 2 mm
+            return np.array(r), P, zh - zt
+        sol = least_squares(lambda x: rr(x)[0], np.zeros(len(joints)+3), diff_step=1e-3)
+        _, P, hh = rr(sol.x); z = np.array([P[l][2] for l in P])
+        J_ = sol.jac; cov = np.linalg.pinv(J_.T@J_)*(2*sol.cost/max(1,len(sol.fun)-len(sol.x)))
+        names = joints+["tilt_x","tilt_y","table_z"]
+        print(f"roll {roll:+4.0f}: cost {sol.cost:5.1f} | home tip {hh*1e3:4.1f} mm | touch heights range {np.ptp(z)*1e3:4.1f} std {z.std()*1e3:3.1f} mm")
+        print("   ", {n: f"{v:+.2f}+/-{s:.2f}" for n,v,s in zip(names[:-1], sol.x[:-1], np.sqrt(np.diag(cov))[:-1])})
+# what H0 (+tilt only) says about home, for reference
+for roll in (0.0, 90.0, -90.0):
+    zh = fk(HOME_Q, {"wrist_roll": roll})[1][2] - (-0.0047)
+    print(f"H0 roll {roll:+4.0f}: home tip {zh*1e3:5.1f} mm above the touch-fitted table (measured 24)")

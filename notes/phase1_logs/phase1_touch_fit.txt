@@ -81,3 +81,14 @@ roll   +90 free=tilt only: cost   72.6  heights range  7.6 std 1.8 mm  x=[-1.62 
 roll   +90 free=['shoulder_lift', 'elbow_flex', 'wrist_flex']: cost   12.4  heights range  7.7 std 2.4 mm  x=[-6.93  4.22  9.95 -1.56 -0.51]
 roll   -90 free=tilt only: cost   67.0  heights range  7.8 std 1.9 mm  x=[-1.56  1.31]
 roll   -90 free=['shoulder_lift', 'elbow_flex', 'wrist_flex']: cost   11.9  heights range  7.5 std 2.3 mm  x=[-6.74  4.43  8.93 -1.6  -0.34]
+
+################ with M1: jaw tips 24 mm above the table at home (notes/phase1_measurements.yaml)
+roll   +0: cost  11.5 | home tip 23.9 mm | touch heights range  7.7 std 2.4 mm
+    {'shoulder_lift': '-6.98+/-0.71', 'elbow_flex': '+4.75+/-0.81', 'wrist_flex': '+13.03+/-1.99', 'tilt_x': '-1.59+/-0.22', 'tilt_y': '-0.43+/-0.61'}
+roll  +90: cost  12.5 | home tip 23.8 mm | touch heights range  7.8 std 2.4 mm
+    {'shoulder_lift': '-7.17+/-0.76', 'elbow_flex': '+4.04+/-0.85', 'wrist_flex': '+10.53+/-0.50', 'tilt_x': '-1.55+/-0.24', 'tilt_y': '-0.60+/-0.64'}
+roll  -90: cost  11.9 | home tip 23.8 mm | touch heights range  7.6 std 2.3 mm
+    {'shoulder_lift': '-6.88+/-0.39', 'elbow_flex': '+4.40+/-3.20', 'wrist_flex': '+9.18+/-4.31', 'tilt_x': '-1.60+/-0.21', 'tilt_y': '-0.39+/-0.51'}
+H0 roll   +0: home tip  -8.8 mm above the touch-fitted table (measured 24)
+H0 roll  +90: home tip  -3.8 mm above the touch-fitted table (measured 24)
+H0 roll  -90: home tip  -2.5 mm above the touch-fitted table (measured 24)

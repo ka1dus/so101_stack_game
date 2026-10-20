@@ -1,0 +1,8 @@
+reachability (IK cost<1 => reachable; jaw low point on mark at given tilt from vertical):
+  mark A [ 19.6 -10.1] cm   0:ok(wf=70) 10:ok(wf=89) 20:ok(wf=37) 30:ok(wf=20) 40:ok(wf=1) 50:ok(wf=-22) 60:ok(wf=-54)
+  mark B [24.2 16.8] cm   0:no 10:ok(wf=86) 20:ok(wf=53) 30:ok(wf=32) 40:ok(wf=11) 50:ok(wf=-11) 60:ok(wf=-34)
+  mark C [12. -3.] cm   0:ok(wf=58) 10:ok(wf=66) 20:ok(wf=75) 30:ok(wf=85) 40:ok(wf=95) 50:no 60:no
+multi-pitch (3 marks x pitch 0/30/50)      error (lift, elbow, wrist, tilt_x, tilt_y): bias [ 0.59 -0.53  0.34  0.08  0.65]  sd [2.48 1.82 1.09 0.27 2.38] deg
+multi-pitch (3 marks x pitch 10/30/50, x2 repeats) error (lift, elbow, wrist, tilt_x, tilt_y): bias [-0.09  0.09 -0.06 -0.03 -0.14]  sd [0.98 1.06 0.8  0.24 0.89] deg
+single pitch 30 (3 marks x3 repeats)       error (lift, elbow, wrist, tilt_x, tilt_y): bias [ 4.47  0.27 -2.64 -0.93  1.72]  sd [11.74  7.82  9.45  2.5   5.99] deg
+guide: steep/mid/flat = 10/30/50 (A,B), 0/15/30 (C) error (lift, elbow, wrist, tilt_x, tilt_y): bias [-0.08  0.17 -0.08  0.04  0.09]  sd [1.76 1.24 0.72 0.29 2.02] deg

@@ -4,6 +4,8 @@ leg home -> R_raise (and back):
   fit_roll+90  home   1.6 cm, min   1.6, at R  10.9 cm  OK
   fit_roll-90  home   1.7 cm, min   1.7, at R  10.9 cm  OK
   fit_roll0    home   1.8 cm, min   1.8, at R  10.9 cm  OK
+  M3_roll+95   home   1.8 cm, min   1.8, at R  10.8 cm  OK
+  M3_roll+5    home   1.8 cm, min   1.8, at R  10.8 cm  OK
 
 leg R_raise -> P1_over_stack (and back): {'shoulder_pan': 27.0, 'shoulder_lift': -20.0, 'elbow_flex': 10.0, 'wrist_flex': 75.0, 'wrist_roll': 8.66, 'gripper': 30.0}
   H0           min clearance  11.0 cm | final  11.0 cm (upper_arm)  OK
@@ -11,6 +13,8 @@ leg R_raise -> P1_over_stack (and back): {'shoulder_pan': 27.0, 'shoulder_lift':
   fit_roll+90  min clearance  10.9 cm | final  11.0 cm (upper_arm)  OK
   fit_roll-90  min clearance  10.9 cm | final  11.0 cm (upper_arm)  OK
   fit_roll0    min clearance  10.9 cm | final  11.0 cm (upper_arm)  OK
+  M3_roll+95   min clearance  10.8 cm | final  10.9 cm (upper_arm)  OK
+  M3_roll+5    min clearance  10.8 cm | final  10.9 cm (upper_arm)  OK
 
 leg R_raise -> P2_side_raised (and back): {'shoulder_pan': -55.0, 'shoulder_lift': -45.0, 'elbow_flex': 20.0, 'wrist_flex': 40.0, 'wrist_roll': 8.66, 'gripper': 0.74}
   H0           min clearance  11.0 cm | final  11.0 cm (upper_arm)  OK
@@ -18,6 +22,8 @@ leg R_raise -> P2_side_raised (and back): {'shoulder_pan': -55.0, 'shoulder_lift
   fit_roll+90  min clearance  10.9 cm | final  10.9 cm (upper_arm)  OK
   fit_roll-90  min clearance  10.9 cm | final  10.9 cm (upper_arm)  OK
   fit_roll0    min clearance  10.9 cm | final  10.9 cm (upper_arm)  OK
+  M3_roll+95   min clearance  10.8 cm | final  10.9 cm (upper_arm)  OK
+  M3_roll+5    min clearance  10.8 cm | final  10.9 cm (upper_arm)  OK
 
 leg R_raise -> P3_over_stack_roll45 (and back): {'shoulder_pan': 27.0, 'shoulder_lift': -20.0, 'elbow_flex': 10.0, 'wrist_flex': 75.0, 'wrist_roll': 53.66, 'gripper': 30.0}
   H0           min clearance  11.0 cm | final  11.0 cm (upper_arm)  OK
@@ -25,5 +31,7 @@ leg R_raise -> P3_over_stack_roll45 (and back): {'shoulder_pan': 27.0, 'shoulder
   fit_roll+90  min clearance  10.9 cm | final  11.0 cm (upper_arm)  OK
   fit_roll-90  min clearance  10.6 cm | final  10.6 cm (moving_jaw_so101_v1)  OK
   fit_roll0    min clearance  10.9 cm | final  11.0 cm (upper_arm)  OK
+  M3_roll+95   min clearance  10.8 cm | final  10.9 cm (upper_arm)  OK
+  M3_roll+5    min clearance  10.8 cm | final  10.9 cm (upper_arm)  OK
 
 ALL LEGS SAFE

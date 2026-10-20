@@ -29,6 +29,8 @@ HYPS = {
     "fit_roll+90": (dict(shoulder_lift=-6.93, elbow_flex=4.22, wrist_flex=9.95, wrist_roll=90), (-1.56, -0.51)),
     "fit_roll-90": (dict(shoulder_lift=-6.74, elbow_flex=4.43, wrist_flex=8.93, wrist_roll=-90), (-1.60, -0.34)),
     "fit_roll0": (dict(shoulder_lift=-6.94, elbow_flex=4.75, wrist_flex=12.97), (-1.59, -0.41)),
+    "M3_roll+95": (dict(shoulder_lift=-5.66, elbow_flex=6.82, wrist_flex=4.61, wrist_roll=95.4), (-1.10, 0.47)),
+    "M3_roll+5": (dict(shoulder_lift=-5.64, elbow_flex=6.89, wrist_flex=8.03, wrist_roll=4.68), (-1.15, 0.44)),
 }
 
 # Poses (LeRobot readings). Chosen to be diagnostic, not to touch anything:
@@ -73,11 +75,24 @@ def lowest_point(q_lerobot, offsets, tilt):
     return zmin + BASE_Z, where
 
 
+def go_home_path(a, b, speed=15.0, fps=30):
+    """Waypoints of so101_go_home.py driving from a to b: every joint (gripper too, in its
+    0-100 units) moves toward its goal by at most speed/fps per tick, independently, so
+    joints with short moves finish early (NOT a straight joint-space line)."""
+    step = speed / fps
+    q, path = a.astype(float).copy(), [a.astype(float).copy()]
+    while np.any(np.abs(b - q) > 1e-9):
+        q = q + np.clip(b - q, -step, step)
+        path.append(q.copy())
+    return path
+
+
 def check_leg(a, b, offs, tilt, first_leg):
-    """Lowest arm point along the straight joint-space path a -> b (what so101_go_home.py does)."""
-    path = [a + s_ * (b - a) for s_ in np.linspace(0, 1, 41)]
+    """Lowest arm point along the go_home trajectory a -> b, sampled every ~4 ticks."""
+    path = go_home_path(a, b)
+    path = path[::4] + [path[-1]]
     zs = np.array([lowest_point(p, offs, tilt)[0] for p in path])
-    if first_leg:   # leaving home: may start low, must rise monotonically-ish and never dip below home
+    if first_leg:   # leaving home: may start low, must never dip below home, then clear the table
         return zs, bool(zs.min() >= zs[0] - 1e-4 and zs[len(zs) // 2:].min() >= MIN_CLEARANCE_M)
     return zs, bool(zs.min() >= MIN_CLEARANCE_M)
 
@@ -91,6 +106,9 @@ def main():
     print("leg home -> R_raise (and back):")
     for hyp, (offs, tilt) in HYPS.items():
         zs, ok = check_leg(home, raise_, offs, tilt, True)
+        zr, okr = check_leg(raise_, home, offs, tilt, False)
+        okr = bool(zr.min() >= min(zr[-1], MIN_CLEARANCE_M) - 1e-4)   # returning: may end low only at home itself
+        ok &= okr
         ok_all &= ok
         print(f"  {hyp:12s} home {zs[0]*100:5.1f} cm, min {zs.min()*100:5.1f}, at R {zs[-1]*100:5.1f} cm  {'OK' if ok else 'NOT OK'}")
     for name, pose in POSES.items():
@@ -99,6 +117,8 @@ def main():
         print(f"\nleg R_raise -> {name} (and back): {pose}")
         for hyp, (offs, tilt) in HYPS.items():
             zs, ok = check_leg(raise_, q, offs, tilt, False)
+            zb, okb = check_leg(q, raise_, offs, tilt, False)
+            zs, ok = np.r_[zs, zb], ok and okb
             ok_all &= ok
             z_end, (body, pt) = lowest_point(q, offs, tilt)
             print(f"  {hyp:12s} min clearance {zs.min()*100:5.1f} cm | final {z_end*100:5.1f} cm ({body})  {'OK' if ok else 'NOT OK'}")

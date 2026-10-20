@@ -1,11 +1,16 @@
-# Parameters for scripts/joint_mapping.py. Evidence: notes/phase1.md.
+# Parameters for scripts/joint_mapping.py. Evidence: notes/phase1.md (section 9), fit: scripts/fit_joint_offsets.py
 #   body:    q_sim_rad = radians(q_lerobot_deg - offset_deg)
 #   gripper: q_sim_rad = radians(gripper_closed_deg + g * deg_per_unit)   (slope from calibration)
-status: provisional        # body offsets NOT validated yet; pending the multi-pose touch protocol (Phase 1)
+status: validated          # Phase 1 (2026-10-20): M3 fit, checked on held-out M1 + old touches; wrist_roll chosen from M4 photos
+                           # accuracy ~ +/-2.5 deg per joint (~1 cm at the tip); Phase 3 camera overlays can refine
 offset_deg:
-  shoulder_pan: 0.0        # unidentifiable from table touches (pure rotation); scene is built in the same frame, so it cancels
-  shoulder_lift: 0.0       # touch-point fit -5.8 +/- 1.6; homing-pose hypothesis +3.0 -> disagree, left at 0
-  elbow_flex: 0.0          # touch-point fit +7.1 +/- 6.5; homing-pose hypothesis +7.4
-  wrist_flex: 0.0          # touch-point fit +7.1 +/- 9.3 (wrist_flex was constant in every touch)
-  wrist_roll: 0.0          # not constrained by any measurement yet
+  shoulder_pan: 0.0        # unidentifiable from table touches; defines the scene's +x, so it cancels
+  shoulder_lift: -5.66     # +/- 2.5 (M3 fit; same in every wrist_roll variant)
+  elbow_flex: 6.82         # +/- 2.2
+  wrist_flex: 4.61         # +/- 1.3 (value for wrist_roll = +95)
+  wrist_roll: 95.4         # M4: front photos at P1/P3 match +95, not +5; wrist photos confirm direction (+45 cmd -> ~45 deg CCW from above, as sim)
 gripper_closed_deg: -10.75 # fitted: closed + 3 box-width readings, rms 1.7 mm; open tip gap 154 vs 150 mm measured
+base_tilt_deg:             # rotation of the arm base relative to the table (scene use, not a joint offset)
+  about_x: -1.10           # +/- 1.2 (side to side; base's left side lower)
+  about_y: 0.47            # +/- 1.5 (front-back; held near 0 by the M2 phone level)
+base_origin_above_table_m: null   # set in Phase 3 from the fitted table height

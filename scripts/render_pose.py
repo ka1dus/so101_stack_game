@@ -42,6 +42,8 @@ HYPOTHESES = {
     "H0": dict(offsets={}, tilt=(0.0, 0.0)),
     "tilt": dict(offsets={}, tilt=(-1.35, 0.19)),
     "fit": dict(offsets=dict(shoulder_lift=-6.94, elbow_flex=4.75, wrist_flex=12.97), tilt=(-1.59, -0.41)),
+    "M3_roll+95": dict(offsets=dict(shoulder_lift=-5.66, elbow_flex=6.82, wrist_flex=4.61, wrist_roll=95.4), tilt=(-1.10, 0.47)),
+    "M3_roll+5": dict(offsets=dict(shoulder_lift=-5.64, elbow_flex=6.89, wrist_flex=8.03, wrist_roll=4.68), tilt=(-1.15, 0.44)),
 }
 POSES = {
     "home": dict(shoulder_pan=-3.16, shoulder_lift=-87.30, elbow_flex=96.79, wrist_flex=48.35, wrist_roll=8.66, gripper=0.74),

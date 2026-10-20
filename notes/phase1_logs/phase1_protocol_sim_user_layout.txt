@@ -1,0 +1,12 @@
+# user's actual mark layout (from the M3 distances); without / with the M2 level prior
+reachability (IK cost<1 => reachable; jaw low point on mark at given tilt from vertical):
+  mark A [ 19.6 -10.1] cm   0:ok(wf=70) 10:ok(wf=89) 20:ok(wf=37) 30:ok(wf=20) 40:ok(wf=1) 50:ok(wf=-22) 60:ok(wf=-54)
+  mark B [24.6 19. ] cm   0:no 10:no 20:ok(wf=61) 30:ok(wf=36) 40:ok(wf=15) 50:ok(wf=-7) 60:ok(wf=-30)
+  mark C [15.   3.1] cm   0:ok(wf=58) 10:ok(wf=70) 20:ok(wf=80) 30:ok(wf=93) 40:no 50:no 60:no
+user layout: steep/mid/flat = 10/30/50 (A,B), 0/15/30 (C) error (lift, elbow, wrist, tilt_x, tilt_y): bias [-0.77  0.34 -0.08  0.03 -0.47]  sd [2.31 1.63 1.22 0.34 2.87] deg
+
+reachability (IK cost<1 => reachable; jaw low point on mark at given tilt from vertical):
+  mark A [ 19.6 -10.1] cm   0:ok(wf=70) 10:ok(wf=89) 20:ok(wf=37) 30:ok(wf=20) 40:ok(wf=1) 50:ok(wf=-22) 60:ok(wf=-54)
+  mark B [24.6 19. ] cm   0:no 10:no 20:ok(wf=61) 30:ok(wf=36) 40:ok(wf=15) 50:ok(wf=-7) 60:ok(wf=-30)
+  mark C [15.   3.1] cm   0:ok(wf=58) 10:ok(wf=70) 20:ok(wf=80) 30:ok(wf=93) 40:no 50:no 60:no
+user layout: steep/mid/flat = 10/30/50 (A,B), 0/15/30 (C) error (lift, elbow, wrist, tilt_x, tilt_y): bias [-0.47  0.07  0.11 -0.03  0.04]  sd [0.85 1.1  0.89 0.28 0.23] deg

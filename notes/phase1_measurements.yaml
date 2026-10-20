@@ -1,0 +1,13 @@
+# Real-arm measurements for Phase 1 (user, 2026-10-20). See notes/phase1.md section 7.
+M1_home_jaw_tip_height_above_table_m: 0.024   # ruler, arm at saved home pose
+M3_mark_distances_m:            # ruler, centre of X to centre of X (user, 2026-10-20)
+  A_B: 0.295
+  B_C: 0.185
+  A_C: 0.140
+# implied layout (A fixed at the stacking spot): B ~(24.6, 19.0) cm, C ~(15.0, 3.1) cm in the arm frame
+M2_phone_level_deg:             # user, 2026-10-20: phone level on its long edge; every reading showed 0 deg
+  table_left_right: 0
+  table_front_back: 0
+  base_left_right: 0
+  base_front_back: 0
+  note: "phone level shows whole degrees, so each reading means |tilt| < ~0.5 deg; base relative to table < ~1 deg"

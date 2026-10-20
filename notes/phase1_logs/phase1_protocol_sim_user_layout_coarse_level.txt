@@ -1,0 +1,5 @@
+# user layout; M2 used as coarse prior: front-back tilt = 0 +/- 0.5 deg (phone shows whole degrees); side-to-side left free
+# case a: true tilt (x,y) = (-1.5, +0.3) deg
+user layout: steep/mid/flat = 10/30/50 (A,B), 0/15/30 (C) error (lift, elbow, wrist, tilt_x, tilt_y): bias [-0.59  0.21 -0.06 -0.22 -0.31]  sd [1.15 1.16 0.94 0.54 0.06] deg
+# case b: true tilt (x,y) = (-0.4, -0.3) deg
+user layout: steep/mid/flat = 10/30/50 (A,B), 0/15/30 (C) error (lift, elbow, wrist, tilt_x, tilt_y): bias [-0.14 -0.11  0.14 -0.4   0.28]  sd [1.22 1.12 1.01 0.74 0.1 ] deg

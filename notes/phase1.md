@@ -156,6 +156,12 @@ Not checked: self-collision and cables.
 
 ## 7. What I need from you (real arm; you run everything)
 
+> **Update 2026-10-20:** M1 is done (**2.4 cm**). It rules out the plain mapping and
+> matches the fitted offsets. The detailed, step-by-step instructions for M2–M4 (with
+> mark diagrams, the corrected safety check that follows how `so101_go_home.py` really
+> moves, and new mark positions) are in **`notes/phase1_measurement_guide.md`**. That
+> guide replaces the short version below.
+
 **M1. Ruler at home (1 min).** Run `so101_go_home.py`, then measure the height of the jaw
 tips above the table. Predictions: H0 ≈ touching or pressing; fitted offsets ≈ 1.6–1.8 cm.
 
@@ -214,3 +220,90 @@ counter-clockwise** going from P1 to P3? That fixes the sign of the wrist_roll o
 Once M1–M4 are in: fit the offsets and tilt (`scripts/fit_joint_offsets.py`, to be written
 on that data), set `joint_mapping.yaml` to `status: validated`, recompute the table and mat
 layout, and redo the home and P1–P3 overlays. Then Phase 2.
+
+## 9. M1–M3 results (2026-10-20)
+
+Inputs: `notes/phase1_measurements.yaml` (M1 2.4 cm; M2 every phone-level reading 0°;
+M3 mark distances 295/185/140 mm) and `inputs/multipose_points.json` (9 touches, none
+skipped, wrist_flex −89° … +95°). Fit: `scripts/fit_joint_offsets.py`, log
+`phase1_logs/fit_joint_offsets.txt`.
+
+**Model fix found on the way.** At steep tilts (e.g. B_flat, 71°), the sim's lowest point
+was the gripper body 6 cm behind the tips. Taking contact as "lowest vertex anywhere on the
+jaws" gave 5–56 mm residuals. The contact is now the lowest vertex within the last 9 mm of
+either jaw, which is what you touch with. Residuals dropped to 3–15 mm in xy and 0–5 mm in z.
+
+| parameter | fit (± 1σ, inflated by the residual size) |
+|---|---|
+| shoulder_lift offset | **−5.6 ± 2.5°** (same in every wrist_roll variant) |
+| elbow_flex offset | **+6.8 ± 2.2°** |
+| wrist_flex offset | +4.6 ± 1.3° (if wrist_roll ≈ +95°) or +8.0° (if wrist_roll ≈ +5°) |
+| wrist_roll offset | two near-equal fits: **+95.4°** (cost 83.5) or **+4.7°** (85.9); −90° fits worse (110.6) → **M4 decides** |
+| base tilt | −1.1 ± 1.2° side to side, +0.5 ± 1.5° front-back |
+| mat + tape under B | +2.7 mm (fitted; please confirm the thickness) |
+
+**Checks on data the fit didn't use:**
+
+| check | plain mapping (H0) | fitted |
+|---|---|---|
+| M1 home tip height (measured 24 mm) | −2.5 to −9 mm | **25.8 mm** |
+| old touches: table corner (90°) | 83.5° | **89.8°** |
+| old touches: stack area sides (ruler 21.4 × 14.6) | 17.5/18.9 × 14.4/15.1 | **20.9/20.6 × 14.3/14.5** |
+| old touches: supply sides (ruler 20.9 × 19.2) | 21.5/20.6 × 17.2/14.3 | **21.2/20.0 × 18.8/18.6** |
+| old touch on the stacking-spot X vs fitted mark A (same X) | 3.5 cm apart | **0.5 cm apart** |
+| old touch heights | 15 mm range | 10 mm range, but on average **+7 mm above** the M3 table plane (open) |
+
+**Consequences:**
+- `sim/assets/joint_mapping.yaml` now holds these values, with `status: fitted_pending_M4`.
+- Every position in `measurements.yaml` came from the plain mapping and is about 3 cm too
+  close to the arm. Phase 3 must recompute the table, mat and stack-spot layout from the
+  old touches with the fitted mapping (the side lengths above show it works).
+- The residuals are about 3× the noise I assumed (touching at steep tilts is harder than
+  2 mm), so the offsets are good to about ±2.5°, not the ±1° the simulation promised.
+  Over this workspace that's about ±1 cm of tip position; the Phase 3 camera overlays and
+  the M4 photos will tighten it.
+- Open: the old touches sit about 7 mm higher than the new ones. Possible causes: lighter
+  touching in the old session, or something that changed between sessions (base seated
+  differently?). Not explained yet.
+- M4 safety was re-checked with both fitted candidates: ≥ 10.8 cm clearance.
+
+## 10. M4 results and Phase 1 close-out (2026-10-20)
+
+Photos: `inputs/photos/phase1/{front,wrist}_cam_P{1,2,3}.png`, taken with
+`scripts/phase1_m4_run.sh`. All three poses ran normally.
+Comparison: `notes/img/phase1_m4_roll_compare.png` (real | sim +95 | sim +5) and
+`phase1_m4_P*_final.png`.
+
+- **Absolute wrist_roll: +95°.** In the front photos at P1 and P3, both jaws show as two
+  separate prongs with the camera box above them, as in the +95° render. The +5° render
+  shows the jaws edge-on in both poses. P2 agrees (one pointed jaw silhouette with the
+  box on top).
+- **Roll direction (sign check).** Between P1 and P3 (+45° command), the wrist image turns
+  about 42–47° **clockwise**. Measured on the table corner, which has carpet on both sides
+  (upper-right → right of the X), and on the tape edges (−11° → 122–135°). So the gripper
+  turned counter-clockwise seen from above. The sim gives +43° counter-clockwise for the
+  same command, so **the sign is the same; no flip**. My first eyeball read of these
+  photos said the opposite; the measurement corrects it.
+- **The wrist camera works:** the X is centred in the P1 wrist view, so the arm really is
+  above the stacking spot.
+
+**Final mapping** (`sim/assets/joint_mapping.yaml`, `status: validated`):
+
+| joint | offset (q_sim = q_lerobot − offset) |
+|---|---|
+| shoulder_pan | 0 (defines the scene's +x) |
+| shoulder_lift | −5.66 ± 2.5° |
+| elbow_flex | +6.82 ± 2.2° |
+| wrist_flex | +4.61 ± 1.3° |
+| wrist_roll | +95.4° |
+| gripper | q = −10.75° + 1.3029° · g |
+| base tilt (scene) | −1.10° about x, +0.47° about y |
+
+**Carried into Phase 3:**
+1. Recompute the table, mat and stacking-spot layout from the old touches with this
+   mapping. `measurements.yaml` positions are about 3 cm too close to the arm.
+2. Model the real wrist-camera housing; the official mount doesn't match.
+3. Widen the sim joint limits to the real calibrated ranges.
+4. The front camera needs a proper calibration; the Phase 1 one is rough (14 px RMS).
+5. Unexplained: the old touch session sits about 7 mm higher than M3; the mat under B
+   fitted at +2.7 mm (thickness not yet confirmed).

@@ -1,0 +1,85 @@
+
+=== wrist_roll offset fixed +0: cost 86.0
+   shoulder_lift -5.62+/-2.48  elbow_flex +6.83+/-2.15  wrist_flex +8.04+/-1.27  tilt_x -1.16+/-1.23  tilt_y +0.44+/-1.48
+   B height above A/C plane +2.6 mm; marks (cm): A [ 22.3 -11.6], B [26.3 17.5], C [18.   1.3]
+     mark_A_steep  xy err  4.8 mm  z err  +0.3 mm
+     mark_A_mid    xy err  2.7 mm  z err  +3.6 mm
+     mark_A_flat   xy err 11.6 mm  z err  -2.0 mm
+     mark_B_steep  xy err  3.8 mm  z err  +1.1 mm
+     mark_B_mid    xy err  5.7 mm  z err  +2.4 mm
+     mark_B_flat   xy err 13.2 mm  z err  -2.0 mm
+     mark_C_steep  xy err  4.5 mm  z err  +2.4 mm
+     mark_C_mid    xy err  8.7 mm  z err  -0.6 mm
+     mark_C_flat   xy err  7.1 mm  z err  -5.3 mm
+   fitted mark distances mm {'A_B': np.float64(293.1), 'B_C': np.float64(181.6), 'A_C': np.float64(135.4)} measured {'A_B': 295.0, 'B_C': 185.0, 'A_C': 140.0}
+   CHECK M1 home tip height: 25.7 mm (measured 24)
+   CHECK old 13 touches: height range 9.3 mm, mean +6.9, std 2.8; table edge angle 89.8 deg (90)
+         sides cm {'sup12': np.float64(21.0), 'sup23': np.float64(18.7), 'sup34': np.float64(20.4), 'sup41': np.float64(18.4), 'stk12': np.float64(21.0), 'stk23': np.float64(14.0), 'stk34': np.float64(20.6), 'stk41': np.float64(14.7)} (ruler supply 20.9 x 19.2, stack 21.4 x 14.6)
+
+=== wrist_roll offset fixed +90: cost 87.0
+   shoulder_lift -5.58+/-2.50  elbow_flex +6.79+/-2.16  wrist_flex +4.97+/-1.28  tilt_x -1.10+/-1.23  tilt_y +0.48+/-1.49
+   B height above A/C plane +2.8 mm; marks (cm): A [ 22.8 -10.5], B [25.6 18.6], C [17.8  2.4]
+     mark_A_steep  xy err  5.2 mm  z err  +0.1 mm
+     mark_A_mid    xy err  2.9 mm  z err  +3.7 mm
+     mark_A_flat   xy err 10.5 mm  z err  -1.7 mm
+     mark_B_steep  xy err  3.9 mm  z err  +1.2 mm
+     mark_B_mid    xy err  5.0 mm  z err  +2.5 mm
+     mark_B_flat   xy err 14.7 mm  z err  -2.1 mm
+     mark_C_steep  xy err  4.0 mm  z err  +2.4 mm
+     mark_C_mid    xy err  7.9 mm  z err  -0.7 mm
+     mark_C_flat   xy err  7.2 mm  z err  -5.4 mm
+   fitted mark distances mm {'A_B': np.float64(292.0), 'B_C': np.float64(179.7), 'A_C': np.float64(138.2)} measured {'A_B': 295.0, 'B_C': 185.0, 'A_C': 140.0}
+   CHECK M1 home tip height: 25.9 mm (measured 24)
+   CHECK old 13 touches: height range 10.4 mm, mean +7.2, std 3.1; table edge angle 90.0 deg (90)
+         sides cm {'sup12': np.float64(21.2), 'sup23': np.float64(18.8), 'sup34': np.float64(20.0), 'sup41': np.float64(18.6), 'stk12': np.float64(20.9), 'stk23': np.float64(14.3), 'stk34': np.float64(20.6), 'stk41': np.float64(14.5)} (ruler supply 20.9 x 19.2, stack 21.4 x 14.6)
+
+=== wrist_roll offset fixed -90: cost 110.6
+   shoulder_lift -5.57+/-2.81  elbow_flex +6.90+/-2.43  wrist_flex +3.82+/-1.45  tilt_x -1.19+/-1.40  tilt_y +0.43+/-1.68
+   B height above A/C plane +2.6 mm; marks (cm): A [ 22. -12.], B [26.5 17. ], C [18.   0.7]
+     mark_A_steep  xy err  5.1 mm  z err  +0.6 mm
+     mark_A_mid    xy err  3.1 mm  z err  +3.9 mm
+     mark_A_flat   xy err 15.6 mm  z err  -2.7 mm
+     mark_B_steep  xy err  6.1 mm  z err  +1.4 mm
+     mark_B_mid    xy err  6.9 mm  z err  +2.7 mm
+     mark_B_flat   xy err 14.0 mm  z err  -2.7 mm
+     mark_C_steep  xy err  3.8 mm  z err  +2.6 mm
+     mark_C_mid    xy err  8.3 mm  z err  -0.5 mm
+     mark_C_flat   xy err  7.1 mm  z err  -5.3 mm
+   fitted mark distances mm {'A_B': np.float64(293.6), 'B_C': np.float64(183.6), 'A_C': np.float64(133.4)} measured {'A_B': 295.0, 'B_C': 185.0, 'A_C': 140.0}
+   CHECK M1 home tip height: 25.8 mm (measured 24)
+   CHECK old 13 touches: height range 8.8 mm, mean +6.9, std 2.7; table edge angle 89.9 deg (90)
+         sides cm {'sup12': np.float64(20.7), 'sup23': np.float64(18.6), 'sup34': np.float64(20.6), 'sup41': np.float64(18.1), 'stk12': np.float64(21.2), 'stk23': np.float64(13.8), 'stk34': np.float64(20.7), 'stk41': np.float64(14.8)} (ruler supply 20.9 x 19.2, stack 21.4 x 14.6)
+
+=== wrist_roll offset free (start +90): cost 83.5
+   shoulder_lift -5.66+/-2.51  elbow_flex +6.82+/-2.21  wrist_flex +4.61+/-1.30  wrist_roll +95.40+/-0.57  tilt_x -1.10+/-1.24  tilt_y +0.47+/-1.50
+   B height above A/C plane +2.7 mm; marks (cm): A [ 22.9 -10.5], B [25.6 18.6], C [17.8  2.4]
+     mark_A_steep  xy err  4.9 mm  z err  +0.1 mm
+     mark_A_mid    xy err  2.7 mm  z err  +3.6 mm
+     mark_A_flat   xy err  9.8 mm  z err  -1.6 mm
+     mark_B_steep  xy err  4.0 mm  z err  +1.1 mm
+     mark_B_mid    xy err  5.0 mm  z err  +2.4 mm
+     mark_B_flat   xy err 14.6 mm  z err  -1.9 mm
+     mark_C_steep  xy err  4.0 mm  z err  +2.4 mm
+     mark_C_mid    xy err  7.8 mm  z err  -0.6 mm
+     mark_C_flat   xy err  7.1 mm  z err  -5.4 mm
+   fitted mark distances mm {'A_B': np.float64(292.1), 'B_C': np.float64(179.7), 'A_C': np.float64(138.4)} measured {'A_B': 295.0, 'B_C': 185.0, 'A_C': 140.0}
+   CHECK M1 home tip height: 26.0 mm (measured 24)
+   CHECK old 13 touches: height range 10.2 mm, mean +7.1, std 3.1; table edge angle 89.6 deg (90)
+         sides cm {'sup12': np.float64(21.2), 'sup23': np.float64(18.7), 'sup34': np.float64(19.9), 'sup41': np.float64(18.5), 'stk12': np.float64(20.9), 'stk23': np.float64(14.4), 'stk34': np.float64(20.4), 'stk41': np.float64(14.5)} (ruler supply 20.9 x 19.2, stack 21.4 x 14.6)
+
+=== wrist_roll offset free (start -90): cost 85.9
+   shoulder_lift -5.64+/-2.56  elbow_flex +6.89+/-2.22  wrist_flex +8.03+/-1.31  wrist_roll +4.68+/-0.01  tilt_x -1.15+/-1.26  tilt_y +0.44+/-1.53
+   B height above A/C plane +2.7 mm; marks (cm): A [ 22.3 -11.5], B [26.2 17.5], C [18.   1.4]
+     mark_A_steep  xy err  4.8 mm  z err  +0.3 mm
+     mark_A_mid    xy err  2.7 mm  z err  +3.6 mm
+     mark_A_flat   xy err 11.6 mm  z err  -1.9 mm
+     mark_B_steep  xy err  3.8 mm  z err  +1.1 mm
+     mark_B_mid    xy err  5.6 mm  z err  +2.4 mm
+     mark_B_flat   xy err 13.2 mm  z err  -1.9 mm
+     mark_C_steep  xy err  4.5 mm  z err  +2.5 mm
+     mark_C_mid    xy err  8.7 mm  z err  -0.6 mm
+     mark_C_flat   xy err  7.1 mm  z err  -5.4 mm
+   fitted mark distances mm {'A_B': np.float64(293.0), 'B_C': np.float64(181.5), 'A_C': np.float64(135.5)} measured {'A_B': 295.0, 'B_C': 185.0, 'A_C': 140.0}
+   CHECK M1 home tip height: 25.8 mm (measured 24)
+   CHECK old 13 touches: height range 9.4 mm, mean +6.9, std 2.8; table edge angle 89.8 deg (90)
+         sides cm {'sup12': np.float64(21.0), 'sup23': np.float64(18.7), 'sup34': np.float64(20.3), 'sup41': np.float64(18.4), 'stk12': np.float64(21.0), 'stk23': np.float64(14.1), 'stk34': np.float64(20.6), 'stk41': np.float64(14.7)} (ruler supply 20.9 x 19.2, stack 21.4 x 14.6)

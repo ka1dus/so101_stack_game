@@ -1,0 +1,108 @@
+{
+  "robot_id": "my_follower_arm",
+  "recorded_at": "2026-10-20T18:52:25",
+  "units": "LeRobot degrees (use_degrees=True); gripper 0-100",
+  "touch_point": "closed gripper jaw tips touching the table",
+  "points": [
+    {
+      "label": "mark_A_steep",
+      "joints": {
+        "shoulder_pan": 26.901,
+        "shoulder_lift": 27.516,
+        "elbow_flex": -5.451,
+        "wrist_flex": 69.099,
+        "wrist_roll": 8.22,
+        "gripper": 1.012
+      }
+    },
+    {
+      "label": "mark_A_mid",
+      "joints": {
+        "shoulder_pan": 26.901,
+        "shoulder_lift": 6.769,
+        "elbow_flex": 30.769,
+        "wrist_flex": 36.396,
+        "wrist_roll": 8.22,
+        "gripper": 1.012
+      }
+    },
+    {
+      "label": "mark_A_flat",
+      "joints": {
+        "shoulder_pan": 26.901,
+        "shoulder_lift": 44.659,
+        "elbow_flex": 67.604,
+        "wrist_flex": -88.703,
+        "wrist_roll": 8.22,
+        "gripper": 1.012
+      }
+    },
+    {
+      "label": "mark_B_steep",
+      "joints": {
+        "shoulder_pan": -33.582,
+        "shoulder_lift": 72.879,
+        "elbow_flex": -88.703,
+        "wrist_flex": 95.209,
+        "wrist_roll": 10.945,
+        "gripper": 0.472
+      }
+    },
+    {
+      "label": "mark_B_mid",
+      "joints": {
+        "shoulder_pan": -34.198,
+        "shoulder_lift": 37.89,
+        "elbow_flex": -23.033,
+        "wrist_flex": 58.813,
+        "wrist_roll": 10.945,
+        "gripper": 0.472
+      }
+    },
+    {
+      "label": "mark_B_flat",
+      "joints": {
+        "shoulder_pan": -33.055,
+        "shoulder_lift": 43.78,
+        "elbow_flex": 42.813,
+        "wrist_flex": -68.044,
+        "wrist_roll": 11.033,
+        "gripper": 0.472
+      }
+    },
+    {
+      "label": "mark_C_steep",
+      "joints": {
+        "shoulder_pan": -4.571,
+        "shoulder_lift": 3.956,
+        "elbow_flex": 28.747,
+        "wrist_flex": 66.725,
+        "wrist_roll": 11.297,
+        "gripper": 0.472
+      }
+    },
+    {
+      "label": "mark_C_mid",
+      "joints": {
+        "shoulder_pan": -4.571,
+        "shoulder_lift": -42.11,
+        "elbow_flex": 95.736,
+        "wrist_flex": 4.132,
+        "wrist_roll": 10.505,
+        "gripper": 0.472
+      }
+    },
+    {
+      "label": "mark_C_flat",
+      "joints": {
+        "shoulder_pan": -4.571,
+        "shoulder_lift": 11.516,
+        "elbow_flex": 95.824,
+        "wrist_flex": -64.791,
+        "wrist_roll": 10.505,
+        "gripper": 0.472
+      }
+    }
+  ],
+  "skipped": []
+}
