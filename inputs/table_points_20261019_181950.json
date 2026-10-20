@@ -1,0 +1,152 @@
+{
+  "robot_id": "my_follower_arm",
+  "recorded_at": "2026-10-19T18:31:21",
+  "units": "LeRobot degrees (use_degrees=True); gripper 0-100",
+  "touch_point": "closed gripper jaw tips touching the table",
+  "points": [
+    {
+      "label": "table_left_edge_near",
+      "joints": {
+        "shoulder_pan": -87.121,
+        "shoulder_lift": -40.088,
+        "elbow_flex": 69.099,
+        "wrist_flex": 62.769,
+        "wrist_roll": 5.407,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "table_left_edge_far",
+      "joints": {
+        "shoulder_pan": -63.385,
+        "shoulder_lift": 49.495,
+        "elbow_flex": -43.341,
+        "wrist_flex": 62.857,
+        "wrist_roll": 5.319,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "table_right_edge_near",
+      "joints": {
+        "shoulder_pan": 66.462,
+        "shoulder_lift": -30.242,
+        "elbow_flex": 65.67,
+        "wrist_flex": 62.769,
+        "wrist_roll": 5.582,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "table_right_edge_far",
+      "joints": {
+        "shoulder_pan": 47.912,
+        "shoulder_lift": 45.187,
+        "elbow_flex": -32.879,
+        "wrist_flex": 62.857,
+        "wrist_roll": 5.319,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "supply_corner_1",
+      "joints": {
+        "shoulder_pan": -78.154,
+        "shoulder_lift": -18.725,
+        "elbow_flex": 52.571,
+        "wrist_flex": 62.769,
+        "wrist_roll": 5.407,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "supply_corner_2",
+      "joints": {
+        "shoulder_pan": -62.945,
+        "shoulder_lift": 48.352,
+        "elbow_flex": -42.813,
+        "wrist_flex": 62.857,
+        "wrist_roll": 5.407,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "supply_corner_3",
+      "joints": {
+        "shoulder_pan": -32.264,
+        "shoulder_lift": 56.527,
+        "elbow_flex": -53.099,
+        "wrist_flex": 62.857,
+        "wrist_roll": 5.407,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "supply_corner_4",
+      "joints": {
+        "shoulder_pan": -10.022,
+        "shoulder_lift": -2.901,
+        "elbow_flex": 36.22,
+        "wrist_flex": 62.769,
+        "wrist_roll": 5.407,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "stack_corner_1",
+      "joints": {
+        "shoulder_pan": 56.0,
+        "shoulder_lift": 1.407,
+        "elbow_flex": 33.319,
+        "wrist_flex": 62.769,
+        "wrist_roll": 5.582,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "stack_corner_2",
+      "joints": {
+        "shoulder_pan": -2.549,
+        "shoulder_lift": 15.033,
+        "elbow_flex": 12.044,
+        "wrist_flex": 62.769,
+        "wrist_roll": 5.407,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "stack_corner_3",
+      "joints": {
+        "shoulder_pan": 13.011,
+        "shoulder_lift": 54.769,
+        "elbow_flex": -49.934,
+        "wrist_flex": 62.857,
+        "wrist_roll": 5.495,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "stack_corner_4",
+      "joints": {
+        "shoulder_pan": 48.088,
+        "shoulder_lift": 44.747,
+        "elbow_flex": -32.264,
+        "wrist_flex": 62.857,
+        "wrist_roll": 5.407,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "stacking_spot",
+      "joints": {
+        "shoulder_pan": 27.165,
+        "shoulder_lift": 21.538,
+        "elbow_flex": 3.516,
+        "wrist_flex": 62.769,
+        "wrist_roll": 5.407,
+        "gripper": 0.607
+      }
+    }
+  ],
+  "skipped": []
+}

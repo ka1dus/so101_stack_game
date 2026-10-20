@@ -1,0 +1,83 @@
+LeRobot reading at the half-turn homing pose: {'shoulder_pan': -2.02, 'shoulder_lift': 2.99, 'elbow_flex': 7.38, 'wrist_flex': 4.22, 'wrist_roll': -0.04}
+pan axis in base frame (mm): [38.84 -0.  ]
+
+== H0 plain deg->rad (as measurements.yaml) [tcp]  heights mm: range 15.2, std 4.2, mean 1.9 | table-edge angle 83.7 deg
+   sides cm: {'sup12': np.float64(21.5), 'sup23': np.float64(17.3), 'sup34': np.float64(20.6), 'sup41': np.float64(14.4), 'stk12': np.float64(17.7), 'stk23': np.float64(14.3), 'stk34': np.float64(19.0), 'stk41': np.float64(15.1)}  (ruler: supply 20.9 x 19.2, stack 21.4 x 14.6)
+
+== H0 plain deg->rad [low]  heights mm: range 15.0, std 4.1, mean -4.7 | table-edge angle 83.5 deg
+   sides cm: {'sup12': np.float64(21.5), 'sup23': np.float64(17.2), 'sup34': np.float64(20.6), 'sup41': np.float64(14.3), 'stk12': np.float64(17.5), 'stk23': np.float64(14.4), 'stk34': np.float64(18.9), 'stk41': np.float64(15.1)}  (ruler: supply 20.9 x 19.2, stack 21.4 x 14.6)
+   table_left_edge_near   xyz mm [ 5. 86. -5.]
+   table_left_edge_far    xyz mm [143. 283.   1.]
+   table_right_edge_near  xyz mm [ 31. -72.  -9.]
+   table_right_edge_far   xyz mm [ 196. -219.  -10.]
+   supply_corner_1        xyz mm [ 23. 105.  -2.]
+   supply_corner_2        xyz mm [145. 282.   5.]
+   supply_corner_3        xyz mm [280. 176.  -4.]
+   supply_corner_4        xyz mm [140.  24.  -3.]
+   stack_corner_1         xyz mm [  80. -120.   -7.]
+   stack_corner_2         xyz mm [199.   8.  -4.]
+   stack_corner_3         xyz mm [316. -74.  -5.]
+   stack_corner_4         xyz mm [ 195. -219.  -10.]
+   stacking_spot          xyz mm [ 193. -100.   -7.]
+
+== H1 zero = half-turn homing pose [low]  heights mm: range 43.8, std 13.9, mean 28.6 | table-edge angle 88.3 deg
+   sides cm: {'sup12': np.float64(20.8), 'sup23': np.float64(18.9), 'sup34': np.float64(20.4), 'sup41': np.float64(19.2), 'stk12': np.float64(21.7), 'stk23': np.float64(14.1), 'stk34': np.float64(21.0), 'stk41': np.float64(14.6)}  (ruler: supply 20.9 x 19.2, stack 21.4 x 14.6)
+
+FIT {'shoulder_lift': np.float64(-5.78), 'elbow_flex': np.float64(7.08), 'wrist_flex': np.float64(7.08)} table z -4.7 mm cost 54.8
+   1-sigma deg: [1.6  6.54 9.32]
+
+== fitted [low]  heights mm: range 17.5, std 5.4, mean -4.7 | table-edge angle 89.9 deg
+   sides cm: {'sup12': np.float64(21.0), 'sup23': np.float64(18.5), 'sup34': np.float64(20.3), 'sup41': np.float64(18.1), 'stk12': np.float64(20.8), 'stk23': np.float64(14.0), 'stk34': np.float64(20.5), 'stk41': np.float64(14.7)}  (ruler: supply 20.9 x 19.2, stack 21.4 x 14.6)
+
+FIT {'shoulder_pan': np.float64(-17.61), 'shoulder_lift': np.float64(-5.78), 'elbow_flex': np.float64(7.08), 'wrist_flex': np.float64(7.08)} table z -4.7 mm cost 54.8
+   1-sigma deg: [0.   1.65 6.73 9.59]
+
+== fitted [low]  heights mm: range 17.5, std 5.4, mean -4.7 | table-edge angle 89.9 deg
+   sides cm: {'sup12': np.float64(21.0), 'sup23': np.float64(18.5), 'sup34': np.float64(20.3), 'sup41': np.float64(18.1), 'stk12': np.float64(20.8), 'stk23': np.float64(14.0), 'stk34': np.float64(20.5), 'stk41': np.float64(14.7)}  (ruler: supply 20.9 x 19.2, stack 21.4 x 14.6)
+
+H0 cost 171.0
+H1 cost (table z free) 314.9
+H1 without wrist_flex offset cost 226.2
+
+== H1 without wrist offset [low]  heights mm: range 37.9, std 11.5, mean 25.5 | table-edge angle 89.5 deg
+   sides cm: {'sup12': np.float64(20.9), 'sup23': np.float64(18.4), 'sup34': np.float64(20.3), 'sup41': np.float64(17.8), 'stk12': np.float64(20.6), 'stk23': np.float64(14.0), 'stk34': np.float64(20.3), 'stk41': np.float64(14.6)}  (ruler: supply 20.9 x 19.2, stack 21.4 x 14.6)
+
+################ base tilt hypothesis
+offsets+tilt: {'tilt_x': '-1.35+/-0.68', 'tilt_y': '0.19+/-1.20', 'table_z': '-0.01+/-0.00'}
+   heights after tilt: range 6.2 mm, std 1.6 mm, cost 111.3
+     table_left_edge_near   z  -7.3 mm
+     table_left_edge_far    z  -6.6 mm
+     table_right_edge_near  z  -7.0 mm
+     table_right_edge_far   z  -6.0 mm
+     supply_corner_1        z  -4.6 mm
+     supply_corner_2        z  -2.5 mm
+     supply_corner_3        z  -8.7 mm
+     supply_corner_4        z  -4.0 mm
+     stack_corner_1         z  -4.5 mm
+     stack_corner_2         z  -5.1 mm
+     stack_corner_3         z  -4.3 mm
+     stack_corner_4         z  -5.7 mm
+     stacking_spot          z  -5.5 mm
+offsets+tilt: {'shoulder_lift': '-6.94+/-1.14', 'elbow_flex': '4.75+/-1.20', 'wrist_flex': '12.97+/-0.61', 'tilt_x': '-1.59+/-0.23', 'tilt_y': '-0.41+/-0.72', 'table_z': '-0.01+/-0.00'}
+   heights after tilt: range 7.7 mm, std 2.4 mm, cost 11.5
+     table_left_edge_near   z  -7.9 mm
+     table_left_edge_far    z -13.3 mm
+     table_right_edge_near  z  -9.6 mm
+     table_right_edge_far   z -10.9 mm
+     supply_corner_1        z -12.3 mm
+     supply_corner_2        z  -8.8 mm
+     supply_corner_3        z -12.4 mm
+     supply_corner_4        z -12.6 mm
+     stack_corner_1         z -13.8 mm
+     stack_corner_2         z -14.0 mm
+     stack_corner_3         z  -6.3 mm
+     stack_corner_4         z -10.7 mm
+     stacking_spot          z -13.8 mm
+
+################ wrist_roll offset vs touch data (tilt free, other offsets 0 / free)
+roll    +0 free=tilt only: cost  111.3  heights range  6.2 std 1.6 mm  x=[-1.35  0.19]
+roll    +0 free=['shoulder_lift', 'elbow_flex', 'wrist_flex']: cost   11.5  heights range  7.7 std 2.4 mm  x=[-6.94  4.75 12.97 -1.59 -0.41]
+roll   +90 free=tilt only: cost   72.6  heights range  7.6 std 1.8 mm  x=[-1.62  1.08]
+roll   +90 free=['shoulder_lift', 'elbow_flex', 'wrist_flex']: cost   12.4  heights range  7.7 std 2.4 mm  x=[-6.93  4.22  9.95 -1.56 -0.51]
+roll   -90 free=tilt only: cost   67.0  heights range  7.8 std 1.9 mm  x=[-1.56  1.31]
+roll   -90 free=['shoulder_lift', 'elbow_flex', 'wrist_flex']: cost   11.9  heights range  7.5 std 2.3 mm  x=[-6.74  4.43  8.93 -1.6  -0.34]

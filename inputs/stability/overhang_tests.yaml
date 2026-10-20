@@ -1,0 +1,55 @@
+# Real stack-stability tests (Phase 4). Used to calibrate MuJoCo physics per box
+# type and per pairing. Box types: no3 (large), no35 (medium), no10 (small).
+#
+# Overhang test: build the stack on the yellow stack area with every box aligned
+# and centred. Slide ONLY the top box sideways along one direction in ~2 mm steps
+# (use a ruler). Record the overhang in mm (top box edge past the edge of the box
+# below) at which it tips. Repeat 3 times per row.
+#
+# Tap test: build the listed stack aligned. Tap the marked level sideways with a
+# fingertip push of similar strength each time. Record how many trials topple it.
+#
+# Slide tests give friction: tilt a board until the top box starts to slide;
+# record the angle.
+#
+# Recorded 2026-10-19/20 [ruler]; boxes full. Overhang values converted from cm to mm.
+
+overhang_tests:
+  # same-type stacks (one row per type)
+  - stack: [no3, no3]                  # bottom -> top
+    slide_direction: "along the top box's long side"
+    topple_overhang_mm: [35, 33, 32]
+  - stack: [no35, no35]
+    slide_direction: "along the top box's long side"
+    topple_overhang_mm: [28, 29, 30]
+  - stack: [no35, no10]                # small on medium (only one No.10 exists, so no no10-on-no10)
+    slide_direction: "along the top box's long side"
+    topple_overhang_mm: [24, 26, 25]
+  # mixed pairings
+  - stack: [no10, no3]                 # large on small (least stable)
+    slide_direction: "along the top box's long side"
+    topple_overhang_mm: [30, 36, 34]
+  - stack: [no3, no10]                 # small on large
+    slide_direction: "along the top box's long side"
+    topple_overhang_mm: [25, 25, 25]
+  - stack: [no3, no35, no10]           # mixed 3-box, slide the top one
+    slide_direction: "along the top box's long side"
+    topple_overhang_mm: [25, 26, 26]
+
+tap_tests:
+  - stack: [no3, no35, no35, no10]     # bottom -> top
+    tapped_level: 3                    # 1 = bottom box
+    trials: 5
+    toppled_count: 1
+  - stack: [no10, no35, no3, no35]     # deliberately top-heavy
+    tapped_level: 3
+    trials: 5
+    toppled_count: 3
+
+slide_tests:
+  box_on_box_deg:                      # top box sliding on a box of the given type
+    no3_on_no3: [26, 25, 27]
+    no35_on_no35: [20, 20, 19]
+    no10_on_no35: [23, 22, 25]         # no10 sliding on a no35 (only one No.10 exists)
+  box_on_yellow_area_deg: [16, 17, 16]   # any box on the yellow tape surface
+  box_on_black_mat_deg: [21, 19, 18]     # any box on the black supply mat

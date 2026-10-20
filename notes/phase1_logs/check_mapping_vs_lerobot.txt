@@ -1,0 +1,3 @@
+max |ours - lerobot| normalize   : 0.00e+00 (LeRobot units)
+max |ours - lerobot| unnormalize : 0.000 ticks (LeRobot int() truncation, expect < 1)
+OK

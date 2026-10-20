@@ -1,0 +1,11 @@
+# Parameters for scripts/joint_mapping.py. Evidence: notes/phase1.md.
+#   body:    q_sim_rad = radians(q_lerobot_deg - offset_deg)
+#   gripper: q_sim_rad = radians(gripper_closed_deg + g * deg_per_unit)   (slope from calibration)
+status: provisional        # body offsets NOT validated yet; pending the multi-pose touch protocol (Phase 1)
+offset_deg:
+  shoulder_pan: 0.0        # unidentifiable from table touches (pure rotation); scene is built in the same frame, so it cancels
+  shoulder_lift: 0.0       # touch-point fit -5.8 +/- 1.6; homing-pose hypothesis +3.0 -> disagree, left at 0
+  elbow_flex: 0.0          # touch-point fit +7.1 +/- 6.5; homing-pose hypothesis +7.4
+  wrist_flex: 0.0          # touch-point fit +7.1 +/- 9.3 (wrist_flex was constant in every touch)
+  wrist_roll: 0.0          # not constrained by any measurement yet
+gripper_closed_deg: -10.75 # fitted: closed + 3 box-width readings, rms 1.7 mm; open tip gap 154 vs 150 mm measured

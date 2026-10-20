@@ -1,0 +1,8 @@
+......shoulder_pan   real  -119.4..  119.4  sim  -110.0..  110.0
+shoulder_lift  real  -105.3..  105.3  sim  -100.0..  100.0
+elbow_flex     real   -97.0..   97.0  sim   -96.8..   96.8
+wrist_flex     real  -101.9..  101.9  sim   -95.0..   95.0
+wrist_roll     real  -180.0..  180.0  sim  -157.2..  162.8
+gripper        real   -10.8..  119.5  sim   -10.0..  100.0
+.
+7 passed in 0.33s

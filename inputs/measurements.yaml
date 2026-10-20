@@ -1,0 +1,203 @@
+# SO-101 stacking game: real-world measurements
+#
+# Sources:
+#   [photo]  read from the setup photo (2026-10-19), worth a quick check
+#   [ruler]  measured by hand
+#   [fk]     computed from joint angles recorded with so101_record_points.py
+#            (table_points_20261019_181950.json): gripper jaw tips touching each
+#            point, converted with forward kinematics of the official SO-101 model
+#            (TheRobotStudio so101_new_calib.urdf, LeRobot degrees -> radians,
+#            tip frame = gripper_frame_link, same convention as lerobot.model.kinematics)
+#
+# COORDINATE FRAME (used for every position below):
+#   origin = the shoulder_pan rotation axis, at table-surface height
+#   +x     = the direction the arm points when shoulder_pan = 0
+#   +y     = to the arm's LEFT (black-mat side), looking from behind the arm along +x
+#   +z     = up
+#   units  = metres, degrees, grams
+#   headings = angle of a direction in the x-y plane, measured from +x toward +y
+
+measurement_quality:              # [fk] read before relying on these numbers
+  touch_heights_spread_mm: [-6, +10]   # all 13 points should be at the same height; they agree to about 1.5 cm
+  table_edge_angle_deg: 96.3      # two table edges should meet at 90 deg; the fit forces 90 deg
+  fitted_edge_error_mm: [6, 19]   # how far the recorded edge points sit from the fitted square edges (worst at far points)
+  arm_base_vs_table: "table surface is ~2 mm above the bottom of the arm's base_link, i.e. the base sits level with the table top"
+  ruler_check:                    # [ruler] vs [fk], cm (sides matched by closest length)
+    supply: {ruler: [20.9, 19.2], fk: [21.1, 15.8]}
+    stack:  {ruler: [21.4, 14.6], fk: [18.3, 14.7]}
+  diagnosis: >
+    One side of each mat matches the ruler; the other is ~3 cm short. Opposite sides of
+    the same mat also disagree by 1.3-2.9 cm in [fk], which a calibration error can't
+    produce on its own, so most of the error is touch placement (corners touched short,
+    especially supply corners 1/4 and stack corners 1/2). Fitting a tool-tip offset or
+    joint offsets needed implausible values and didn't flatten the touch heights, so no
+    calibration correction is applied.
+  verdict: >
+    Mat SIZES: use the ruler values. Mat CENTRES, headings, table corners and stacking
+    spot: [fk] values, good to about +/-1.5 cm. Phase 3 camera overlays refine positions
+    against the real front-camera image; Phase 1 still validates the joint mapping.
+
+table:
+  type: small square white side table, metal frame, lower shelf      # [photo]
+  extends_beyond_view: false      # [photo] all four edges of the top are visible in the front view
+  size_x: 0.38                    # [ruler] square
+  size_y: 0.38                    # [ruler]
+  height_from_floor: 0.62         # [ruler]
+  arm_mounting: "arm mounted at one corner of the table; its forward (+x) axis runs roughly along the table diagonal, ~7 deg off it"   # [fk]
+  corners:                        # [fk] square of 0.38 m fitted to the two recorded edges
+    mount_corner: [-0.055, 0.002]   # the corner the arm is mounted at (behind the pan axis)
+    left_corner: [0.180, 0.300]     # arm's left (black-mat side)
+    right_corner: [0.244, -0.233]   # arm's right (yellow side)
+    far_corner: [0.479, 0.066]      # beyond the arm's reach
+  edge_headings_deg: {left_edge: 51.9, right_edge: -38.1}   # [fk] direction from mount corner along each edge (fitted, 90 deg apart)
+  # The earlier hand-measured edge distances (front 43.5 / back 16 / left 2.5 / right 9 cm)
+  # were taken assuming the table edges are square to the arm; they aren't, so they're replaced by the corners above.
+  surface: "white, slightly glossy laminate; scuffs, a dark stain and small ring-shaped marks in the open white area"   # [photo]
+
+arm:
+  clamp_position_note: "mounted at one corner of the table on a vertical aluminium extrusion bracket, arm reaching out over the table"   # [photo] + [fk]
+  gripper:                        # [ruler]
+    type: "one fixed jaw, one hinged moving jaw"
+    max_opening_angle_deg: 100      # [ruler]
+    gap_at_tips_open: 0.150         # [ruler] re-measured and confirmed; hinge sits offset from the fixed jaw, so the gap exceeds the jaw-swing chord
+    gap_at_1cm_depth_open: 0.122
+    moving_jaw_length: 0.069        # hinge to tip
+    reading_closed: 0.13            # gripper.pos with jaws fully closed (0 = closed)
+    reading_open: 99.66             # gripper.pos fully open (100 = open, 0.150 m at tips)
+    grip_value_on_box:              # [ruler] gripper.pos when the moving jaw just touches the box, across its width, tips ~1 cm below the box top, torque off
+      no3: 24.0                     # width 0.040
+      no35: 18.6                    # width 0.035
+      no10: 15.5                    # width 0.029
+    grip_note: "values are contact points, +/- ~1 from hand placement; command a few units lower to actually squeeze"
+    grasp: "top-down, jaws on the long sides (across the width), tips ~1 cm below the box top"
+  home_pose:                      # LeRobot degrees; gripper 0-100; from ~/.cache/so101_home/my_follower_arm.json (saved 2026-10-14, old setup; confirm it suits this table)
+    shoulder_pan: -3.16
+    shoulder_lift: -87.30
+    elbow_flex: 96.79
+    wrist_flex: 48.35
+    wrist_roll: 8.66
+    gripper: 0.74
+  cables: "USB/power cable runs to the gripper; a second cable hangs down from above the arm into the front camera view"   # [photo] keep this routing fixed
+
+boxes:
+  type: "MAX brand stapler-staple boxes"   # [photo]
+  count: 8                        # [ruler] 3 + 4 + 1
+  all_identical: false            # three sizes are mixed (see variants)
+  variants:                       # [ruler] lying flat: length x width footprint, height up
+    - label: "No.3"
+      sim_name: no3
+      count: 3
+      size_note: "largest"
+      dimensions: {length: 0.070, width: 0.040, height: 0.017}
+      mass_g: 38
+    - label: "No.35"
+      sim_name: no35
+      count: 4
+      size_note: "medium"
+      dimensions: {length: 0.060, width: 0.035, height: 0.016}
+      mass_g: 31
+    - label: "No.10"
+      sim_name: no10
+      count: 1
+      size_note: "smallest"
+      dimensions: {length: 0.052, width: 0.029, height: 0.013}
+      mass_g: 21
+  grip_note: "grasp across the width (0.029-0.040 m); open gap is well above that"
+  contents: full                  # [ruler] same for every box
+  main_colours: "white boxes with teal / green / blue printed bands, red-orange MAX logo corner, small text"   # [photo]
+  surface_finish: matte           # [ruler]
+  orientation_in_supply: "lying flat (largest face down), long axes roughly parallel, arranged in a loose grid"   # [photo]
+
+supply_area:                      # black mat; all boxes start here
+  type: "solid black mat/sheet (fully filled, not just an outline)"   # [photo]
+  location_note: "arm's left (right side as seen from the front camera)"   # [photo] + [fk]
+  centre: [0.148, 0.148]          # [fk]
+  corners:                        # [fk] in recorded order (1 = nearest the arm)
+    - [0.023, 0.107]
+    - [0.146, 0.284]
+    - [0.281, 0.176]
+    - [0.142, 0.024]
+  side_1_2: 0.209                 # [ruler] edge corner1 -> corner2 ([fk] gave 0.211, matches)
+  side_2_3: 0.192                 # [ruler] edge corner2 -> corner3 ([fk] gave 0.158; touch error, see measurement_quality)
+  heading_1_2_deg: 55.3           # [fk] direction of edge corner1 -> corner2
+  layout_rule: "use the ruler sizes; centre and heading from [fk] (+/- ~1.5 cm, refined in Phase 3 overlays)"
+  note: "corner 2 sits on the table's left edge (matches table_left_edge_far)"   # [fk]
+  box_arrangement: "loose grid, boxes touching or nearly touching"   # [photo]
+
+stack_area:                       # yellow area; the stack is built here
+  type: "solid yellow fill made of several strips of yellow tape laid side by side (seams visible)"   # [photo]
+  location_note: "arm's right (left side as seen from the front camera)"   # [photo] + [fk]
+  centre: [0.199, -0.102]         # [fk]
+  corners:                        # [fk] in recorded order (1 = nearest the arm)
+    - [0.081, -0.122]
+    - [0.202, 0.008]
+    - [0.318, -0.074]
+    - [0.197, -0.220]
+  side_1_2: 0.214                 # [ruler] ([fk] gave 0.183; touch error, see measurement_quality)
+  side_2_3: 0.146                 # [ruler] ([fk] gave 0.147, matches)
+  heading_1_2_deg: 47.2           # [fk]
+  layout_rule: "use the ruler sizes; centre and heading from [fk] (+/- ~1.5 cm, refined in Phase 3 overlays)"
+  stacking_spot: [0.196, -0.101]  # [fk] 0.4 cm from the area centre
+  note: "corner 4 sits on the table's right edge (matches table_right_edge_far)"   # [fk]
+  contrast_fix: "none needed at the base: boxes (white/teal) contrast well with solid yellow. Upper boxes of a tall stack will appear against the white table/panel; see notes"   # [photo]
+
+players:
+  human_side: "arm's right (-y), the yellow stack-area side; = right of the wrist camera image, left of the front camera image"   # [stated] user: right side from the wrist camera POV
+  human_reach_path_note: ""
+
+cameras:
+  front:                          # tripod, ~45 degrees
+    model: ""
+    resolution: [640, 480]        # reference frames: photos/front_cam_frame.png, photos/front_cam_stack3.png (640x480, index 0, so101_capture_frames.py)
+    fps: 30
+    view_note: "elevated, looking down at the table at roughly 30-45 deg from beyond the far corner, roughly along the table diagonal toward the arm"   # [photo] + [fk]
+    position: {x: 0.865, y: 0.156, z: 0.38}   # trilaterated from the tape distances below; residuals < 1 cm
+    looks_at: {x: 0.03, y: 0.03, z: 0.0}      # approx; refine in Phase 3 overlays
+    measured:                                 # [ruler] raw tape measurements behind position / looks_at
+      lens_height_above_floor: 1.00
+      dist_lens_to_far_corner: 0.54
+      dist_lens_to_left_corner: 0.80
+      dist_lens_to_right_corner: 0.83
+      image_centre_feature: "640x480 frame: centre (320,240) is just behind the gripper jaw tips, over the white table near the arm's mount corner"
+    approx_pitch_down_deg: 29                 # derived from position and looks_at
+    roll_deg: 0                   # [photo] no visible roll
+    diagonal_fov_deg: null        # [photo] wide-angle; slight barrel distortion near the edges
+    settings: "all auto"          # auto exposure / white balance / focus; randomize brightness and colour in sim
+    white_balance_drift: "observed: videos from 2026-10-20 are much bluer than front_cam_frame.png (2026-10-19), same framing. Randomize colour temperature in sim; lock WB if possible before recording real data"
+    tripod_marked: true           # true if tripod feet / height are taped
+  wrist:
+    model: ""
+    resolution: [640, 480]
+    fps: 30
+    mount: "appears to be a black camera module on top of the wrist/gripper, cable routed back along the arm"   # [photo] confirm
+    reference_frame: photos/wrist_cam_frame.png   # 640x480, index 1; both jaw tips visible at the bottom centre; image slightly soft
+    offset_from_gripper_tip:        # [ruler] rigid mount, fixed in the gripper frame; measured from the FIXED jaw tip (left in the wrist image, always in frame)
+      height_above_tip: 0.036       # along the jaw direction: lens is 3.6 cm back from the fixed jaw tip, toward the wrist
+      sideways_from_tip: 0.013      # perpendicular to the jaws, on the side AWAY from the moving jaw (outside the fixed jaw)
+    in_frame_note: "fixed jaw always visible (left of image); moving jaw (right) swings out of frame when the gripper opens"
+    pitch_down_deg: null            # angled IN toward the jaw tips (not parallel to the jaws); exact angle not measured.
+                                    # Geometry: lens-to-tip line is ~20 deg off the jaw direction (atan(1.3/3.6)); the tips sit in the
+                                    # lower part of wrist_cam_frame.png, so the optical axis is somewhere between parallel and ~20 deg.
+                                    # Fit in Phase 3 by matching the sim wrist view to wrist_cam_frame.png (jaw tip positions in the image).
+    diagonal_fov_deg: null
+
+lighting:
+  main_source: "overhead office ceiling lights, diffuse and fairly even; soft shadows under the gripper"   # [photo]
+  extra_lamp: "none "      # [photo]
+  varies_during_day: false       # no windows nearby; ceiling lights only
+background:
+  behind_play_area: "white panel directly behind the table (lower part of the view); above it a black banner with a gold 'BotMind' logo"   # [photo]
+  other_objects_in_view: "dark blue carpet floor; a black/grey backpack and an aluminium extrusion frame on the floor to the right; a cable hanging from above to the arm"   # [photo] remove or keep fixed every session
+
+notes: |
+  - Mixed box sizes (No.3, No.35, No.10) are intentional; see CLAUDE.md.
+  - The stack area is a solid yellow fill, so boxes contrast well at the base. A tall
+    stack seen from the elevated front camera will have its upper boxes against the
+    white table top / white panel, where contrast is poor.
+  - The table is fully in view and the camera looks across it at an angle, so the
+    whole table top and its edges are good calibration features for the sim camera.
+  - Remove or fix in place: backpack, loose floor items, the hanging cable's position.
+  - Clean the ring-shaped marks and stain off the white table area, or keep them
+    consistent; the policy can latch onto spurious marks.
+  - Raw touch points (joint angles) are in table_points_20261019_181950.json; keep it
+    in inputs/ so Claude Code can redo the conversion with the validated joint mapping.

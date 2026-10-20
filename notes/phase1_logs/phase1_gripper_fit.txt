@@ -1,0 +1,26 @@
+-20 ['0.1', '0.1']
+-18 ['0.1', '0.9']
+-16 ['1.4', '0.5']
+-14 ['0.7', '1.2']
+-12 ['0.5', '3.2']
+-10 ['2.3', '4.2']
+deg per gripper unit k = 1.3029; full 0..100 = 130.3 deg servo travel
+best theta_closed = -17.75 deg, rms 42.2 mm
+  reading   0.13 tip: measured   0.0 mm  sim-meas  +0.4 mm  (sim angle  -17.6 deg)
+  reading  24.00 d10: measured  40.0 mm  sim-meas  -7.0 mm  (sim angle   13.5 deg)
+  reading  18.60 d10: measured  35.0 mm  sim-meas -11.0 mm  (sim angle    6.5 deg)
+  reading  15.50 d10: measured  29.0 mm  sim-meas -10.1 mm  (sim angle    2.4 deg)
+  reading  99.66 tip: measured 150.0 mm  sim-meas -80.9 mm  (sim angle  112.1 deg)
+  reading  99.66 d10: measured 122.0 mm  sim-meas -62.2 mm  (sim angle  112.1 deg)
+box+closed only: theta_closed -10.75, rms 1.7, res [ 1.6  1.8 -2.1 -1.2]
+reading 0.13: sim angle -10.6 deg, tip-tip 3.8 mm, 1cm back 6.6 mm
+reading 99.66: sim angle 119.1 deg, tip-tip 153.6 mm, 1cm back 137.6 mm
+at sim limit 100 deg: tip-tip 139.9 mm
+no3 width 0.04
+no35 width 0.035
+no10 width 0.029
+
+### grasp clearance per box (gap 1 cm back from the tips, mapping theta = -10.75 + 1.303*g)
+  no3: width 40 mm | contact reading sim  22.9 (measured 24.0) | pre-grasp width+15 mm -> reading  32.2 | max opening margin 110 mm
+  no35: width 35 mm | contact reading sim  19.8 (measured 18.6) | pre-grasp width+15 mm -> reading  29.1 | max opening margin 115 mm
+  no10: width 29 mm | contact reading sim  16.2 (measured 15.5) | pre-grasp width+15 mm -> reading  25.3 | max opening margin 121 mm
