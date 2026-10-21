@@ -101,23 +101,23 @@ Items marked **TODO** must be confirmed with me before Phase 2 ends.
 
 | Item | Default / proposal | Status |
 |---|---|---|
-| Boxes | **mixed MAX stapler-staple boxes**: No.3 (large, 7.0×4.0×1.7 cm, 38 g), No.35 (medium, 6.0×3.5×1.6 cm, 31 g), No.10 (small, 5.2×2.9×1.3 cm, 21 g); printed designs. Grasp across the width, which must be **< gripper max opening − ~1.5 cm for every type** | dimensions + mass done (`measurements.yaml`); gripper max opening measured in Phase 1: 150 mm at tips (ruler), 154 mm in sim; widest box 40 mm, so margin ~110 mm (`notes/phase1.md` §3); confirm fit in Phase 2 |
+| Boxes | **mixed MAX stapler-staple boxes**: No.3 (large, 7.0×4.0×1.7 cm, 38 g), No.35 (medium, 6.0×3.5×1.6 cm, 31 g), No.10 (small, 5.2×2.9×1.3 cm, 21 g); printed designs. Grasp across the width, which must be **< gripper max opening − ~1.5 cm for every type** | dimensions + mass done (`measurements.yaml`); gripper max opening 150 mm at tips (ruler), 154 mm in sim; every type fits with ≥ 95 mm to spare after the 1.5 cm clearance (`notes/phase2.md`): done |
 | Box mix | 3 × No.3, 4 × No.35, 1 × No.10 (8 boxes) | done |
 | Human's box choice | the human may pick any box from the supply | default |
 | Robot's box choice | see Section 3c | default |
-| Box contents | all **full** or all **empty**, never mixed (mass and stability differ a lot; loose staples shift inside) | TODO: confirm |
-| Box orientation | lying flat (largest face down) for both supply and stack | TODO: confirm |
+| Box contents | all **full** or all **empty**, never mixed (mass and stability differ a lot; loose staples shift inside) | done: **all full** |
+| Box orientation | lying flat (largest face down) for both supply and stack | done: always flat |
 | Box count | 8 (max stack height ≤ 8 levels; also limited by reach/view) | done |
 | Supply | **black mat**, arm's left; ruler size 20.9 × 19.2 cm; centre/heading in `measurements.yaml` | done |
 | Stack base | **yellow area**, arm's right; ruler size 21.4 × 14.6 cm; stacking spot in `measurements.yaml` | done |
 | Contrast | boxes contrast well with black and yellow tape but **poorly with the white table** | see Section 3a |
-| Turn order | coin flip or the human starts | TODO |
+| Turn order | coin flip or the human starts | done: **human starts** every game |
 | Human turn end | **keypress** (vision-based detection is a later upgrade) | default |
 | Robot turn end | box released + gripper raised clear of the stack (or timeout) | default |
 | Settle window | **3 s** after each placement before judging stability | default |
 | Lose: drop | box leaves the gripper before reaching the stack | default |
 | Lose: collapse | any stack box ends on the table, or the stack top moves > threshold, during a turn or its settle window | default |
-| Max height | limited by arm reach and camera view; compute in Phase 3 | TODO |
+| Max height | limited by arm reach and camera view; compute in Phase 3 | open until Phase 3 (computed there, then confirmed with me) |
 
 ### 3a. Visual contrast (fix in the real setup before calibrating)
 
@@ -495,3 +495,5 @@ Append entries as `YYYY-MM-DD: decision, reason, evidence/link`.
 - 2026-10-20: Body joint mapping = LeRobot formula (verified against LeRobot's own `_normalize` on every tick) with per-joint offsets, **provisionally 0** (`sim/assets/joint_mapping.yaml`, status provisional). Touch data suggests a ~1.4° base tilt and lift ≈ −7°, elbow ≈ +5° offsets, plus a ±90° wrist_roll offset from the home-pose image. Not applied until the user's M1–M4 measurements (`notes/phase1.md` §7).
 - 2026-10-20: Phase 1 M3 fit: shoulder_lift −5.6 ± 2.5°, elbow_flex +6.8 ± 2.2° offsets, base tilt −1.1° / +0.5°; confirmed on held-out data (home tip 25.8 vs 24 mm measured; old touches give a 89.8° table corner and ruler-matching mat sizes). wrist_roll (+95 or +5) and wrist_flex (+4.6 / +8.0) wait for the M4 photos. Touch contact = lowest vertex in the last 9 mm of a jaw. All `measurements.yaml` positions (plain mapping) are ~3 cm too close to the arm and must be recomputed in Phase 3. Evidence: `notes/phase1.md` §9.
 - 2026-10-20: Phase 1 closed: joint mapping validated (`sim/assets/joint_mapping.yaml`). wrist_roll offset +95.4° from the M4 front photos (+5° rejected); roll direction matches sim (+45° command → ~45° CCW from above; no sign flip); wrist_flex +4.61°. Accuracy ≈ ±2.5° per joint (~1 cm at the tip). Evidence: `notes/phase1.md` §10.
+- 2026-10-21: Phase 2 game spec: boxes **all full**, **always lying flat** (supply and stack), **human starts** every game; box fit confirmed (≥ 95 mm spare for every type). Max height stays open until Phase 3. Evidence: `notes/phase2.md`.
+- 2026-10-21: Contrast fix (Section 3a) = **matte black backdrop** standing on the table's right edge (arm corner → yellow-side corner), about 10 cm from the arm's corner to the corner plus a ~5 cm wrap, ≥ 20 cm tall. Reason: from 4 boxes up, the front view sees the top box against the white panel (and the human). Sizing: `notes/phase2_background_check.txt`. The sim models it; real reference frames are retaken after it's installed.

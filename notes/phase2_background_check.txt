@@ -1,0 +1,16 @@
+Phase 2 background check (front camera at tape position; corrected Phase 1 mapping)
+stacking spot (cm): [ 23.2 -10.7]
+1 boxes (top  1.5 cm): background behind the top box = yellow ( 2.9 cm behind the stack)
+2 boxes (top  3.1 cm): background behind the top box = yellow ( 6.0 cm behind the stack)
+3 boxes (top  4.6 cm): background behind the top box = yellow ( 9.4 cm behind the stack)
+4 boxes (top  6.1 cm): background behind the top box = OFF the table (white panel / floor behind) (13.2 cm behind the stack)
+5 boxes (top  7.6 cm): background behind the top box = OFF the table (white panel / floor behind) (17.3 cm behind the stack)
+6 boxes (top  9.2 cm): background behind the top box = OFF the table (white panel / floor behind) (21.8 cm behind the stack)
+7 boxes (top 10.7 cm): background behind the top box = OFF the table (white panel / floor behind) (26.9 cm behind the stack)
+8 boxes (top 12.2 cm): background behind the top box = OFF the table (white panel / floor behind) (32.6 cm behind the stack)
+
+Backdrop sizing: board standing on the table's RIGHT edge (mount corner -> right corner, 38 cm)
+  sightlines past the top of 3-8 box stacks cross the right edge between 16 and 37 cm from the mount corner (edge is 38 cm)
+  at heights up to 12.5 cm above the table
+  -> board covering 13-38 cm from the mount corner, at least 16 cm tall
+  mount corner xy [-9.1  1.1] cm, right corner xy [ 20.9 -22.2] cm
