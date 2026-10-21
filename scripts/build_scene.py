@@ -31,6 +31,17 @@ CFG = yaml.safe_load((SIM / "assets/joint_mapping.yaml").read_text())
 LAY = yaml.safe_load((SIM / "assets/layout.yaml").read_text())
 MEAS = yaml.safe_load((ROOT / "inputs/measurements.yaml").read_text())
 CAMS_PATH = SIM / "assets/cameras.yaml"
+PHYS = yaml.safe_load((SIM / "assets/physics.yaml").read_text())     # Phase 4 (scripts/stability_check.py)
+FR = PHYS["friction"]; CT = PHYS["contact"]
+
+
+def fr(mu):
+    return [mu, FR["torsional"], FR["rolling"]]
+
+
+def surf(**kw):
+    """Play surfaces: priority 1 so their measured friction wins against boxes (verified in MuJoCo 3.16)."""
+    return dict(kw, priority=1, condim=CT["condim"], solref=CT["solref"], solimp=CT["solimp"])
 
 BOX_TYPES = {v["sim_name"]: v for v in MEAS["boxes"]["variants"]}
 # cube-texture file slot -> photo, with the pre-rotation (deg CCW) verified in Phase 3 so each
@@ -61,6 +72,49 @@ def yaw_quat(deg):
     return np.array([np.cos(np.radians(deg) / 2), 0, 0, np.sin(np.radians(deg) / 2)])
 
 
+FINGER_FRICTION = 0.8     # APPROX: jaw pads not measured (tan grip surface on the real jaws)
+GRIPPER_TORQUE = 0.75     # N m: LeRobot so_follower.py:192-195 sets Max_Torque_Limit 50 % and Overload_Torque 25 % for the
+                          # gripper; with a ~2.94 N m STS3215 the sustained (overloaded) grip is ~0.74 N m. Vendor file: 3.35.
+# collision bitmasks (MuJoCo: collide if (contype1 & conaffinity2) or (contype2 & conaffinity1))
+CT_WORLD, CA_WORLD = 1, 1           # table, mats, backdrop, other arm links (vendor default)
+CT_BOX, CA_BOX = 2, 3               # boxes: hit each other, the world and the fingers
+CT_HULL, CA_HULL = 4, 1             # gripper mesh hulls: hit the world but NOT boxes (their convex hulls fill the jaw gap)
+CT_FINGER, CA_FINGER = 2, 1         # finger primitives: hit boxes and the world
+
+
+def finger_boxes():
+    """Box colliders along each jaw's real inner face, measured from the vendor meshes in their own
+    body frames (notes/phase4_finger_geometry.txt). Returns [(body, centre, half_size, quat)]."""
+    m = mujoco.MjModel.from_xml_path(str(SIM / "assets/so101/so101_new_calib.xml")); d = mujoco.MjData(m)
+    mujoco.mj_forward(m, d)
+    def verts(mesh, body):
+        g = [i for i in range(m.ngeom) if m.geom_group[i] == 3 and m.mesh(m.geom_dataid[i]).name == mesh][0]
+        mid = m.geom_dataid[g]; v = m.mesh_vert[m.mesh_vertadr[mid]:m.mesh_vertadr[mid] + m.mesh_vertnum[mid]]
+        b = m.body(body).id
+        return ((d.geom_xpos[g] + v @ d.geom_xmat[g].reshape(3, 3).T) - d.xpos[b]) @ d.xmat[b].reshape(3, 3)
+    out = []
+    F = verts("wrist_roll_follower_so101_v1", "gripper"); ztip = F[:, 2].min()
+    for z0, z1 in ((ztip, ztip + 0.014), (ztip + 0.014, ztip + 0.044)):
+        sel = F[(F[:, 2] >= z0) & (F[:, 2] <= z1)]
+        xin = sel[:, 0].max(); x_out = xin - 0.006                     # 6 mm thick slab behind the inner face
+        y0, y1 = np.percentile(sel[:, 1], [5, 95])
+        out.append(("gripper", np.array([(xin + x_out) / 2, (y0 + y1) / 2, (z0 + z1) / 2]),
+                    np.array([0.003, (y1 - y0) / 2, (z1 - z0) / 2]), np.array([1.0, 0, 0, 0])))
+    M = verts("moving_jaw_so101_v1", "moving_jaw_so101_v1")
+    r = np.linalg.norm(M[:, :2], axis=1); tip = M[np.argmax(r)]
+    u = tip[:2] / np.linalg.norm(tip[:2]); n = np.array([-u[1], u[0]])   # -n faces the fixed jaw (checked when closed)
+    rt = r.max()
+    for s0, s1 in ((rt - 0.014, rt), (rt - 0.044, rt - 0.014)):
+        sel = M[((M[:, :2] @ u) >= s0) & ((M[:, :2] @ u) <= s1)]
+        t_in = (sel[:, :2] @ n).min(); t_out = t_in + 0.006
+        z0, z1 = np.percentile(sel[:, 2], [5, 95])
+        c2 = u * (s0 + s1) / 2 + n * (t_in + t_out) / 2
+        ang = np.arctan2(u[1], u[0])
+        out.append(("moving_jaw_so101_v1", np.array([c2[0], c2[1], (z0 + z1) / 2]),
+                    np.array([(s1 - s0) / 2, 0.003, (z1 - z0) / 2]), np.array([np.cos(ang / 2), 0, 0, np.sin(ang / 2)])))
+    return out
+
+
 def make_cube_textures():
     """Square, pre-rotated copies of the face textures for MuJoCo cube textures."""
     out = SIM / "assets/textures/cube"
@@ -77,7 +131,9 @@ def build():
     spec.modelname = "so101_stack_game"
     spec.meshdir = str(SIM / "assets/so101/assets")      # absolute while compiling here;
     spec.texturedir = str(SIM / "assets/textures")       # main() writes them relative to sim/
-    spec.option.timestep = 0.002
+    spec.option.timestep = PHYS["option"]["timestep"]
+    spec.option.cone = mujoco.mjtCone.mjCONE_ELLIPTIC if PHYS["option"]["cone"] == "elliptic" else mujoco.mjtCone.mjCONE_PYRAMIDAL
+    spec.option.impratio = PHYS["option"]["impratio"]
     spec.visual.global_.offwidth, spec.visual.global_.offheight = 640, 480
 
     # ---- arm placement: table = z 0, pan axis at the origin, fitted tilt ----
@@ -96,6 +152,18 @@ def build():
         spec.joint(j).range = [a, b]
         spec.actuator(j).ctrlrange = [a, b]
 
+    # ---- gripper contact model (Phase 4): finger primitives instead of mesh hulls for box contact ----
+    for g in spec.geoms:
+        if g.classname.name.endswith("collision") or g.group == 3:
+            b = g.parent.name if hasattr(g.parent, "name") else ""
+            if b in ("gripper", "moving_jaw_so101_v1"):
+                g.contype, g.conaffinity = CT_HULL, CA_HULL
+    for k, (body, c, hs, q) in enumerate(finger_boxes()):
+        spec.body(body).add_geom(name=f"finger_{body.split('_')[0]}_{k}", type=mujoco.mjtGeom.mjGEOM_BOX, pos=c, size=hs,
+                                 quat=q, contype=CT_FINGER, conaffinity=CA_FINGER, priority=2,
+                                 friction=[FINGER_FRICTION, 0.005, 0.0001], group=3, rgba=[1, 0, 0, 0.5])
+    spec.actuator("gripper").forcerange = [-GRIPPER_TORQUE, GRIPPER_TORQUE]
+
     wb = spec.worldbody
     # ---- room (APPROX, visual; randomized in data generation) ----
     spec.add_texture(name="carpet", type=mujoco.mjtTexture.mjTEXTURE_2D, builtin=mujoco.mjtBuiltin.mjBUILTIN_FLAT,
@@ -109,7 +177,7 @@ def build():
     T = LAY["table"]; c = np.array(T["centre"]); hd = T["heading_deg"]; s = T["size_m"] / 2
     white = [0.93, 0.94, 0.96, 1]
     wb.add_geom(name="table_top", type=mujoco.mjtGeom.mjGEOM_BOX, size=[s, s, TABLE_TOP_THICKNESS / 2],
-                pos=[c[0], c[1], -TABLE_TOP_THICKNESS / 2], quat=yaw_quat(hd), rgba=white, friction=[0.5, 0.005, 0.0001])
+                pos=[c[0], c[1], -TABLE_TOP_THICKNESS / 2], quat=yaw_quat(hd), rgba=white, **surf(friction=fr(FR["surface"]["white_table"])))
     u = np.array([np.cos(np.radians(hd)), np.sin(np.radians(hd))]); v = np.array([-u[1], u[0]])
     for i, (a, b) in enumerate([(-1, -1), (-1, 1), (1, -1), (1, 1)]):
         p = c + (s - LEG / 2) * (a * u + b * v)
@@ -123,12 +191,21 @@ def build():
     wb.add_geom(name="supply_mat", type=mujoco.mjtGeom.mjGEOM_BOX,
                 size=[S_["size_m"][0] / 2, S_["size_m"][1] / 2, MAT_THICKNESS / 2],
                 pos=[*S_["centre"], MAT_THICKNESS / 2], quat=yaw_quat(S_["heading_1_2_deg"]), rgba=[0.03, 0.03, 0.03, 1],
-                friction=[0.6, 0.005, 0.0001])
+                **surf(friction=fr(FR["surface"]["black_mat"])))
     K = LAY["stack_area"]
     wb.add_geom(name="stack_area", type=mujoco.mjtGeom.mjGEOM_BOX,
                 size=[K["size_m"][0] / 2, K["size_m"][1] / 2, TAPE_THICKNESS / 2],
                 pos=[*K["centre"], TAPE_THICKNESS / 2], quat=yaw_quat(K["heading_1_2_deg"]), rgba=[0.96, 0.76, 0.12, 1],
-                friction=[0.45, 0.005, 0.0001])
+                **surf(friction=fr(FR["surface"]["yellow_tape"])))
+    # ---- reach-limit tape line on the supply mat (Phase 4, user decision 2026-10-21; sim/assets/reach_line.yaml) ----
+    RL = SIM / "assets/reach_line.yaml"
+    if RL.exists():
+        ends = np.array(yaml.safe_load(RL.read_text())["reach_line"]["ends"])
+        mid = ends.mean(0); vec = ends[1] - ends[0]
+        wb.add_geom(name="reach_line_tape", type=mujoco.mjtGeom.mjGEOM_BOX,
+                    size=[np.linalg.norm(vec) / 2, 0.0085, 0.0001],       # APPROX 1.7 cm wide matte white tape
+                    pos=[mid[0], mid[1], MAT_THICKNESS + 0.0001], quat=yaw_quat(np.degrees(np.arctan2(vec[1], vec[0]))),
+                    rgba=[0.92, 0.92, 0.9, 1], contype=0, conaffinity=0)  # visual only (tape is flush with the mat)
     sp = K["stacking_spot"]
     wb.add_site(name="stacking_spot", type=mujoco.mjtGeom.mjGEOM_CYLINDER, size=[0.004, 0.0001, 0],
                 pos=[sp[0], sp[1], TAPE_THICKNESS], rgba=[0.2, 0.2, 0.2, 1], group=1)
@@ -172,7 +249,8 @@ def build():
         body.add_freejoint(name=f"box{n}_free")
         body.add_geom(name=f"box{n}_geom", type=mujoco.mjtGeom.mjGEOM_BOX,
                       size=[d["length"] / 2, d["width"] / 2, d["height"] / 2], mass=BOX_TYPES[t]["mass_g"] / 1000,
-                      material=f"mat_{t}", friction=[0.5, 0.005, 0.0001])
+                      material=f"mat_{t}", friction=fr(FR["box"][t]), condim=CT["condim"], contype=CT_BOX, conaffinity=CA_BOX,
+                      solref=CT["solref"], solimp=CT["solimp"])
 
     # ---- lights (ceiling, diffuse) ----
     wb.add_light(name="ceiling", pos=[0.2, 0, 1.6], dir=[0, 0, -1], diffuse=[0.55, 0.55, 0.55],

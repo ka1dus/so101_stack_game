@@ -1,0 +1,4 @@
+edge 1-2: line ends 14.7 cm from corner 1 (nearest the arm base) (toward corner 2); r = 29.0 cm
+edge 3-4: line ends 13.0 cm from corner 4 (nearest the yellow area) (toward corner 3); r = 29.0 cm
+strip length 19.3 cm; its middle is 27.4 cm from the pan axis (inside the 29 cm limit by 1.6 cm)
+usable supply (arm side of the strip): 66 % of the mat

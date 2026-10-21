@@ -1,0 +1,9 @@
+reach_line:
+  ends:
+  - - 0.1104
+    - 0.2682
+  - - 0.2542
+    - 0.1396
+  note: white matte tape strip on the black mat; boxes only on the arm side (user
+    decision 2026-10-21, no re-touch)
+  radius_m: 0.29

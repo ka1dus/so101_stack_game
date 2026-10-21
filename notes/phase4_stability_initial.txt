@@ -1,0 +1,22 @@
+physics: sim/assets/physics.yaml
+
+OVERHANG (mm at topple)          real mean (runs)        sim     sim-real
+  no3 -> no3               33.3 [35, 33, 32]      34.7    +1.3
+  no35 -> no35             29.0 [28, 29, 30]      29.6    +0.6
+  no35 -> no10             25.0 [24, 26, 25]      25.7    +0.7
+  no10 -> no3              33.3 [30, 36, 34]      34.5    +1.2
+  no3 -> no10              25.0 [25, 25, 25]      25.7    +0.7
+  no3 -> no35 -> no10      25.7 [25, 26, 26]      25.7    +0.0
+  worst |sim - real| = 1.3 mm (target <= 2-3 mm)
+
+SLIDE (deg at slide onset)       real mean   sim
+  no3   on no3                  26.0   26.1
+  no35  on no35                 19.7   19.8
+  no10  on no35                 23.3   23.3
+  no35  on yellow_tape          16.3   16.1
+  no35  on black_mat            19.3   19.3
+
+TAP (impulse threshold, N s; lower = less stable)   real toppled
+  no3 -> no35 -> no35 -> no10      level 3:    0.2 mN s   1/5
+  no10 -> no35 -> no3 -> no35      level 3:    0.2 mN s   3/5
+  order matches real (the stack that toppled more must have the lower threshold): False; ratio 1.00

@@ -1,0 +1,4 @@
+fixed finger inner face x = -7.9 mm, tip z = -104.4 mm (gripper frame)
+no3  : start contacts 0 | gripper stopped at reading   0.5 (real contact 24.0) | touching [] | box moved 28.5 mm
+no35 : start contacts 0 | gripper stopped at reading  17.6 (real contact 18.6) | touching ['finger_gripper_0', 'finger_moving_2'] | box moved 7.0 mm
+no10 : start contacts 0 | gripper stopped at reading  13.4 (real contact 15.5) | touching ['finger_gripper_0', 'finger_moving_2'] | box moved 2.9 mm

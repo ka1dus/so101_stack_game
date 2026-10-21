@@ -1,0 +1,4 @@
+no3  : 100/100 held 2 s (100 %)  outcomes {'ok': 100}  closed reading 20.7 +/- 0.0
+no35 : 100/100 held 2 s (100 %)  outcomes {'ok': 100}  closed reading 17.6 +/- 0.0
+no10 : 100/100 held 2 s (100 %)  outcomes {'ok': 100}  closed reading 13.4 +/- 0.0
+PASS (target >= 95 % per type)

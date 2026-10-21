@@ -1,0 +1,20 @@
+Sim tap outcomes vs push force (50 ms pulse on level 3, across the long side)
+stack A no3 -> no35 -> no35 -> no10 (real toppled 1/5):
+   from 0.2 N: stands
+   from 0.5 N: level 3 slid/fell out
+stack B no10 -> no35 -> no3 -> no35 (real toppled 3/5):
+   from 0.2 N: stands
+   from 0.7 N: level 2 slid/fell out
+   from 0.9 N: level 3 slid/fell out
+
+push duration 150 ms:
+  stack A:  from 0.10 N stands;  from 0.25 N level 3 slid/fell out;
+  stack B:  from 0.10 N stands;  from 0.40 N level 2 slid/fell out;  from 0.45 N level 3 slid/fell out;
+
+push duration 300 ms:
+  stack A:  from 0.10 N stands;  from 0.20 N level 3 slid/fell out;
+  stack B:  from 0.10 N stands;  from 0.35 N TIPPED over the base;  from 0.40 N level 3 slid/fell out;
+
+push duration 600 ms:
+  stack A:  from 0.10 N stands;  from 0.20 N level 3 slid/fell out;
+  stack B:  from 0.10 N stands;  from 0.35 N TIPPED over the base;  from 0.40 N level 3 slid/fell out;

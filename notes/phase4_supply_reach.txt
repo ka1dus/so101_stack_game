@@ -1,0 +1,5 @@
+black mat: 71 % of its area is within 29 cm of the pan axis (box centres pickable with vertical jaws)
+  corner 1: 15.2 cm from the pan axis
+  corner 2: 35.0 cm from the pan axis
+  corner 3: 36.3 cm from the pan axis
+  corner 4: 18.0 cm from the pan axis

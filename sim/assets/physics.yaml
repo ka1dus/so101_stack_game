@@ -1,0 +1,25 @@
+# Physics parameters for boxes and play surfaces (Phase 4). Used by scripts/stability_check.py
+# and scripts/build_scene.py. Friction values from inputs/stability/overhang_tests.yaml
+# slide tests: mu = tan(mean slide angle). Contact combination (verified in MuJoCo 3.16):
+# equal priority -> max friction of the two geoms; higher priority -> that geom's friction.
+status: calibrated_phase4      # overhang <= 1.5 mm and slide <= 0.2 deg vs real (notes/phase4.md); tap order mismatched (open)
+option:
+  timestep: 0.002
+  cone: elliptic           # elliptic friction cone (closer to Coulomb than pyramidal)
+  impratio: 10             # MuJoCo guidance for grasping: >1 stiffens friction, stops in-grasp creep (was 1: No.3 slid out)
+  noslip_iterations: 0
+contact:
+  condim: 3
+  solref: [0.02, 1.0]      # MuJoCo default
+  solimp: [0.9, 0.95, 0.001, 0.5, 2.0]   # MuJoCo default
+friction:
+  box:                     # box-box contact uses max(top, bottom)
+    no3: 0.49              # tan(26.0 deg), no3 on no3
+    no35: 0.36             # tan(19.7 deg), no35 on no35
+    no10: 0.43             # tan(23.3 deg), no10 on no35 -> max(0.43, 0.36)
+  surface:                 # priority 1: surface friction wins against any box
+    yellow_tape: 0.29      # tan(16.3 deg)
+    black_mat: 0.35        # tan(19.3 deg)
+    white_table: 0.30      # APPROX: not measured (only matters for boxes that fall off)
+  torsional: 0.005
+  rolling: 0.0001
