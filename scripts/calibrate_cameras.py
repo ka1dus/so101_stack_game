@@ -198,6 +198,7 @@ WRIST_FRAMES = {
         ("stacking_spot", (262, 193), 1.0), ("stack_corner_4", (528, 276), 1.0), ("tip_fixed", (320, 325), 1.0)]),
 }
 MARK_C_WORLD = (0.178, 0.024, 0.0)     # Phase 1 M3 fit (roll +95), +/- ~5 mm
+WRIST_F_SPEC = 518.0                   # px, Orbbec Gemini 2 datasheet RGB 4:3 FOV 63 x 50 deg at 640x480
 
 
 def wrist_world_points():
@@ -354,7 +355,8 @@ def calibrate_wrist_silhouette(init):
         return (tot, out) if detail else tot
 
     def bounded(p):                 # keep k1 realistic and f sane; penalise leaving the box
-        pen = max(0, -0.45 - p[7]) + max(0, p[7] - 0.1) + max(0, 200 - p[6]) / 100
+        # Orbbec Gemini 2 RGB, 4:3 mode: FOV 63 x 50 deg -> f ~ 522 / 515 px at 640x480 (datasheet); +/- 5 %
+        pen = max(0, -0.45 - p[7]) + max(0, p[7] - 0.1) + max(0, abs(p[6] - WRIST_F_SPEC) - 26) / 10
         return loss(p) + 10 * pen
     best = None
     for x0 in init:
@@ -378,7 +380,7 @@ def wrist_inits():
         zc = np.array([0, 0, -1.0]); yc = to_tip - (to_tip @ zc) * zc; yc /= np.linalg.norm(yc)   # tips toward image bottom
         xc = np.cross(yc, zc)
         rv0 = cv2.Rodrigues(np.c_[xc, yc, zc])[0].ravel()
-        inits.append(np.r_[rv0, c0, 420.0, -0.15])
+        inits.append(np.r_[rv0, c0, WRIST_F_SPEC, -0.05])
     return inits
 
 

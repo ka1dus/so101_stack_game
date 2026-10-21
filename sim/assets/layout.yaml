@@ -17,7 +17,7 @@ table:
   centre:
   - 0.1881
   - 0.0531
-  heading_deg: 142.28602709512222
+  heading_deg: 142.28602708351937
   corners:
     far:
     - 0.4546
@@ -33,7 +33,7 @@ table:
     - -0.2134
   source: front_cam_frame.png corner picks back-projected with the calibrated front
     camera
-  picked_side_length_m: 0.39396748977241314
+  picked_side_length_m: 0.39396748964649947
 touch_heights_mm:
   range: 8.8
   mean: 5.9

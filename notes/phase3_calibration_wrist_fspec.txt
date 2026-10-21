@@ -1,0 +1,4 @@
+table placed from the image: side between picks 39.4 cm (38.0), centre [18.8  5.3] cm (touches: [18.1  4.5])
+front: f=654px fovy=40.3 k1=-0.086 k2=-0.000 rms=2.48px pos=[0.8485, 0.155, 0.3953] (2.3 cm from tape)
+  residuals px: {'stack_corner_1': 0.3, 'stack_corner_2': 3.4, 'stack_corner_3': 1.2, 'stack_corner_4': 0.7, 'supply_corner_1': 1.6, 'supply_corner_2': 1.0, 'supply_corner_3': 1.6, 'supply_corner_4': 4.3, 'jaw_tips_home': 4.2}
+wrist: f=516px fovy=49.9 k1=0.027 jaw IoU {'home': 0.31, 'P1': 0.679, 'P3': 0.67} lens 8.6 cm from the fixed tip, axis 44.6 deg off the jaws

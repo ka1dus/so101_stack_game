@@ -292,3 +292,148 @@ the tape position.
 
 **Reference frames are final** (empty front, empty wrist, 3-box stack), with the backdrop
 in place and the new X marked.
+
+## 15. Wrist camera identified: Orbbec Gemini 2 (user, 2026-10-21)
+
+From Orbbec's product page and datasheet (orbbec.com/products/stereo-vision-camera/gemini-2,
+ORBBEC_Datasheet_Gemini-2-1.pdf):
+- **Housing:** 90 × 25 × 30 mm, 98 g. This is the large black box on the gripper; it
+  replaces the official mount in the sim, and its mass belongs on the gripper.
+- **RGB view:** 86 × 55° in 16:9 mode, **63 × 50° in 4:3 mode**. The 640 × 480 stream is 4:3,
+  so **f ≈ 518 px** (522 / 515). The earlier failed fits had f = 328 / 421 px.
+- **Depth:** range 0.15–10 m, so it's no use near the grasp (the lens is ~6 cm from the table at home).
+- **Focus and lens distortion:** not published, so the checkerboard is still needed to
+  confirm f and measure distortion.
+- **Wrist silhouette fit re-running** with f held to 518 ± 26 px
+  (`notes/phase3_calibration_wrist_fspec.txt`).
+- **Checkerboard distance corrected:** the board must be 15–35 cm from the lens (fully in
+  view at ~63° horizontal), not 5–25 cm.
+- **Result of the re-run:** f = 516 px (held by the datasheet prior), k1 0.03, but jaw
+  overlap is still poor (home 0.31, P1 0.68, P3 0.67), with the lens 8.6 cm from the tip and
+  the optical axis 45° off the jaws. Silhouettes alone don't pin the mount pose, even
+  with f fixed. **Stopping blind fits:** the mount will be fitted from the measured lens
+  position (side photo + ruler) with checkerboard intrinsics, and the silhouettes used
+  only as a check. The wrist camera stays marked uncalibrated.
+
+## 16. Measurements received (2026-10-21; `notes/phase3_measurements.yaml`)
+
+- **Backdrop:** 18.5 cm tall, 28 cm long, from 10 cm along the right edge to the corner,
+  no wrap. Now in `build_scene.py`. The overlay top edge matches (it was a bit high at
+  20 cm). The tallest stack sightlines cross it at up to 13.2 cm, so it's still covered.
+- **Black mat:** thickness negligible, modelled as 0.5 mm.
+- **Wrist lens offset:** `measurements.yaml` (3.6 cm along the jaws from the fixed tip,
+  1.3 cm sideways, angled in) is **not consistent with the images**:
+  - the fixed jaw is ~36 px wide just below its tip in `wrist_cam_frame.png`; with the
+    CAD section (7–10 mm) and the datasheet f (518 px), the lens is **~10–14 cm** from the
+    tips (3.6 cm would give 100–145 px);
+  - `gripper_open.jpg` shows the housing near the jaw roots, with the jaws extending
+    ~8–10 cm beyond it;
+  - the free fits gave 8.6–10.3 cm.
+  Asked the user to re-measure (method in the chat reply).
+
+## 17. Wrist camera from the re-measured lens position (2026-10-21; `scripts/wrist_from_measurement.py`)
+
+- **Measured** (relative to the fixed jaw tip): 7.5–8 cm back along the jaws, 2.7 cm in the
+  jaw plane away from the moving jaw, ~2 cm out of the jaw plane. f = 518 px (datasheet),
+  k1 = 0 for now.
+- **Fit:** orientation from the jaw-tip pixels, lens held to the measurement ± 1 cm. The
+  out-of-plane side is **+y**, the side the vendor mount is on (jaw IoU 0.65 at home vs
+  0.04 for −y). Tip pixels fit to 0.5–3.7 px, the lens moved 1.2 cm from the measurement,
+  and the optical axis is 18° off the jaws ("angled in", as described).
+- **Scene changes:** the vendor camera mount (official camera variant) is removed; it
+  doesn't match and sat in front of the lens. An Orbbec Gemini 2 housing (90 × 25 × 30 mm,
+  98 g, own body on the gripper) is added behind the lens. **APPROX:** the RGB lens is
+  assumed at the centre of the housing's front face.
+- **Still wrong:** near the lens, the gripper body renders much larger and rounder in sim
+  than the slim black prongs in the real frame. The lens is only ~2.5 cm from where the
+  jaws attach, so small direction errors change the view a lot. P1/P3 also differ because
+  those photos predate the backdrop, and the moving jaw stays in the sim view when open
+  (the real one leaves the frame).
+- **Status: PROVISIONAL.** Waiting for the two side photos (lens position and facing
+  relative to the gripper body) and the checkerboard (f, k1). Overlays in
+  `notes/img/phase3_wrist_overlays.png` (`scripts/render_wrist_check.py`).
+
+## 18. Wrist camera: side photos and scene-constrained fit (2026-10-21)
+
+- **Side photos** (`notes/img/phase3_wrist_side_A_IMG1222.jpg`, `_B_IMG1224.jpg`): the Gemini 2
+  lies across the top of the gripper, lens face toward the tips, its lower face ~8 cm
+  from the jaw tip (confirms the 7.5–8 cm; the old 3.6 cm was wrong). Its long side is
+  ~69° to the jaw line in the photo (~21° off square). The lens window itself isn't
+  visible.
+- **Silhouette refine from the measured start** (`scripts/wrist_refine.py`): jaw IoU
+  0.75 / 0.41 / 0.39, but the P1/P3 view looked out toward the carpet, so the pitch was
+  wrong. Jaw tips alone can't fix the pitch.
+- **Scene-constrained fit** (`scripts/wrist_fit_scene.py`, saved): jaw tips plus the P1/P3
+  X and yellow-corner pixels, with a 5 mm prior on the measured lens position.
+  - Tips 2.8–4.4 px; scene points 17–32 px (≈ the arm's ±1 cm FK error at 15 cm).
+  - **Jaw IoU 0.71 / 0.73 / 0.69**, consistent across all three frames for the first time.
+    The P1/P3 views now look down at the yellow area as in the real frames
+    (`notes/img/phase3_wrist_overlays.png`).
+- **Lens position, fit vs measurement:** the fit wants back 6.8 cm (measured 7.5–8),
+  in-plane +1.1 cm (measured −2.7, other side), out-of-plane **+5.9 cm** (measured +2.0).
+  A 2 mm prior gives 6.3 / +0.8 / +5.0. Asked the user to re-check the out-of-plane
+  distance; a housing on top of the servo would be ~5–6 cm out.
+- **Open:** k1 (checkerboard), RGB lens position along the housing face, the hard
+  housing shadow (single point light), and the open moving jaw still partly in the sim view.
+- **Checkerboard pose:** at home the wrist camera sees only ~6 cm of table. Use `R_raise`
+  (lens 33 cm up, looking 32° down toward the far corner, sightline reaches the table at
+  61 cm), which leaves free air over the table for the board.
+
+## 19. Checkerboard skipped (user decision, 2026-10-21)
+
+- **Wrist intrinsics stay** f = 518 px (Gemini 2 datasheet, 4:3 mode) with k1 = 0. The
+  scene-constrained fit is consistent with that (tip errors ≤ 4.4 px).
+- **Mitigation in Phase 5:** randomize the wrist intrinsics per episode (f ± 5 %, small
+  radial distortion |k1| ≤ 0.05) on top of the planned pose jitter (± a few mm / ± 1°),
+  so the policy doesn't depend on the exact lens model.
+- `scripts/capture_checkerboard.sh` stays in the repo, unused, in case it's needed later.
+- **Still open for the wrist camera:** the lens out-of-plane offset (fit ~5–6 cm vs measured 2 cm).
+
+## 20. Wrist lens position: measurement vs images (2026-10-21; `notes/phase3_wrist_hypotheses.txt`)
+
+The user re-confirmed the lens is 2–3 cm out of the jaw-opening plane. With the lens
+**fixed** at each hypothesis (only the orientation fitted):
+
+| lens position from the fixed tip | jaw tips | table features (P1/P3) | jaw IoU |
+|---|---|---|---|
+| as measured (−2.7 in-plane, +2.5 out, 7.75 back) | 18–21 px | 140–240 px | 0.66 / 0.40 / 0.38 |
+| swapped (−2.5, +2.7) | 16–21 px | 137–224 px | 0.66 / 0.44 / 0.41 |
+| other side (−2.5 out) | 10–62 px | 166–431 px | ≈ 0.1 |
+| free fit (+1.1, **+6.0 out**, 6.9 back) | **3–4 px** | **16–32 px** | **0.71 / 0.73 / 0.69** |
+
+The home jaw tips depend only on camera-to-jaw geometry (no arm error), and at 2–3 cm no
+orientation reproduces them. **Decision: keep the fitted position** (lens ≈ 9 cm from the
+tips, ≈ 6 cm out of the jaw plane). The camera model must reproduce what the camera sees.
+The difference from the ruler is probably a reference difference (jaw surface vs jaw
+mid-plane, housing edge vs RGB window). Phase 5 jitter (± a few mm / ± 1°) covers the
+remaining uncertainty.
+
+## 21. Wrist size check (Section 3d; `notes/phase3_size_check.txt`)
+
+Pre-grasp (jaws vertical, tips 3 cm above the box top, ~11 cm from the lens):
+
+| box | length × width (native) | at SmolVLA 512 (× 0.8) |
+|---|---|---|
+| No.3 | 276 × 157 px | 221 × 126 px |
+| No.35 | 235 × 140 px | 188 × 112 px |
+| No.10 | 203 × 118 px | 162 × 95 px |
+
+No.3 vs No.35: **41 px in length, 17 px in width**, against 5–6 / 4 px in the front
+camera. The wrist view separates the types easily. All boxes are fully in view over the
+supply and over a 3-box stack.
+
+## Phase 3 checkpoint summary
+
+| item | status |
+|---|---|
+| layout | both touch sessions; stacking spot = touched new X, 22.9 cm from the pan axis |
+| scene | `sim/scene.xml`: measured backdrop, textured boxes, Gemini 2 housing, real joint ranges |
+| front camera | **2.48 px RMS**, overlays aligned (`phase3_front_empty.png`, `phase3_front_stack3.png`) |
+| wrist camera | f from the datasheet (no checkerboard, user decision), mount fitted; jaw IoU ≈ 0.7 in 3 frames (`phase3_wrist_overlays.png`) |
+| size check | front: No.3/No.35 hard to separate (4–6 px); wrist: easy (17–41 px) |
+| max height | **full 8-box game, no riser** (spot at 23 cm; releases ≤ 6° tilt up to a 6-box stack, ≈ 10–11° for the last placement); front view fits 19 boxes |
+| reach caveat | ~14 % of the supply mat (> 31.6 cm from the arm) isn't vertically pickable; keep boxes out of its far corner |
+| spot check | hovering tips ≈ 5 mm from the new X |
+| open, low priority | RGB lens spot on the housing face, hard housing shadow, open moving jaw partly in the sim view |
+
+**Next:** Phase 4 (physics and stack stability) after your OK.

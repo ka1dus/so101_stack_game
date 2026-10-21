@@ -26,7 +26,7 @@ from joint_mapping import BODY_JOINTS, JOINT_NAMES, JointMapping  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SIM = ROOT / "sim"
-ROBOT_XML = SIM / "assets/so101/so101_new_calib_camera.xml"
+ROBOT_XML = SIM / "assets/so101/so101_new_calib.xml"   # no vendor camera mount: the real wrist camera is an Orbbec Gemini 2
 CFG = yaml.safe_load((SIM / "assets/joint_mapping.yaml").read_text())
 LAY = yaml.safe_load((SIM / "assets/layout.yaml").read_text())
 MEAS = yaml.safe_load((ROOT / "inputs/measurements.yaml").read_text())
@@ -39,9 +39,9 @@ CUBE_SLOTS = {"right": ("right", 90), "left": ("left", -90), "up": ("back", 180)
               "down": ("front", 0), "front": ("top", 0), "back": ("bottom", 180)}
 
 # APPROX placeholders (not measured yet; visual only unless noted)
-MAT_THICKNESS = 0.002          # black supply mat (M3 fit put mark B +2.7 mm incl. tape)
+MAT_THICKNESS = 0.0005         # black supply mat: 'negligible' (user, 2026-10-21); 0.5 mm so it renders above the table
 TAPE_THICKNESS = 0.0002        # yellow tape
-BACKDROP = dict(start_from_mount=0.10, wrap=0.05, height=0.20, thickness=0.005)   # Phase 2 spec, collides
+BACKDROP = dict(start_from_mount=0.10, wrap=0.0, height=0.185, thickness=0.005)   # measured (user, 2026-10-21): 18.5 cm tall, 28 cm long from 10 cm along the right edge; thickness APPROX
 TABLE_TOP_THICKNESS = 0.02
 LEG = 0.025                    # square leg tube
 SHELF_DROP = 0.40              # lower shelf, below the top
@@ -149,7 +149,8 @@ def build():
     if np.dot(e2, c - rc) < 0:
         e2 = -e2
     mid2 = rc + e2 * BACKDROP["wrap"] / 2 + (-e) * 0 + e * BACKDROP["thickness"] / 2
-    wb.add_geom(name="backdrop_wrap", type=mujoco.mjtGeom.mjGEOM_BOX,
+    if BACKDROP["wrap"] > 0:
+      wb.add_geom(name="backdrop_wrap", type=mujoco.mjtGeom.mjGEOM_BOX,
                 size=[BACKDROP["wrap"] / 2, BACKDROP["thickness"] / 2, BACKDROP["height"] / 2],
                 pos=[mid2[0], mid2[1], BACKDROP["height"] / 2], quat=yaw_quat(np.degrees(np.arctan2(e2[1], e2[0]))),
                 rgba=[0.02, 0.02, 0.02, 1])
@@ -189,7 +190,16 @@ def build():
                       targetbody="world", fovy=45)
     w = cams.get("wrist")
     if w:
-        spec.body(w["body"]).add_camera(name="wrist", pos=w["pos"], xyaxes=w["xyaxes"], fovy=w["fovy"])
+        g = spec.body(w["body"])
+        g.add_camera(name="wrist", pos=w["pos"], xyaxes=w["xyaxes"], fovy=w["fovy"])
+        # Orbbec Gemini 2 housing (datasheet 90 x 25 x 30 mm, 98 g): long side along the image x axis,
+        # 30 mm deep behind the lens. APPROX: RGB lens assumed at the centre of the front face.
+        xa = np.array(w["xyaxes"][:3]); ya = np.array(w["xyaxes"][3:]); za = np.cross(xa, ya)   # za = -optical axis
+        centre = np.array(w["pos"]) + za * (0.015 + 0.002)
+        R = np.c_[xa, ya, za]
+        hb = g.add_body(name="wrist_camera_housing", pos=centre, quat=mat2quat(R))
+        hb.add_geom(name="wrist_camera_housing", type=mujoco.mjtGeom.mjGEOM_BOX, size=[0.045, 0.0125, 0.015],
+                    rgba=[0.05, 0.05, 0.06, 1], mass=0.098)
     else:   # placeholder: measurements.yaml offsets from the fixed jaw tip, looking along the jaws
         spec.body("gripper").add_camera(name="wrist", pos=[-0.0089, 0.0128, -0.068], xyaxes=[0, -1, 0, -1, 0, 0], fovy=70)
 

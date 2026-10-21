@@ -10,15 +10,15 @@ front:
   - -0.42803
   - -0.05613
   - 0.90202
-  fovy: 40.31733353108517
-  f_px: 653.7558610538528
-  k1: -0.08622259127536809
-  k2: -9.999978759739973e-10
+  fovy: 40.31733358854431
+  f_px: 653.755860040562
+  k1: -0.08622258661192016
+  k2: -9.999979101786587e-10
   rvec:
-  - 1.4315849465366577
-  - 1.6754789390764322
-  - -1.0738839703161362
-  rms_px: 2.480993183655424
+  - 1.431584946702545
+  - 1.6754789395553564
+  - -1.0738839699616605
+  rms_px: 2.4809931823655687
   residual_px:
     stack_corner_1: 0.3
     stack_corner_2: 3.4
@@ -29,7 +29,7 @@ front:
     supply_corner_3: 1.6
     supply_corner_4: 4.3
     jaw_tips_home: 4.2
-  tape_offset_m: 0.022515418687060414
+  tape_offset_m: 0.022515419324035058
   points:
     stack_corner_1:
     - 195.5
@@ -61,31 +61,44 @@ front:
 wrist:
   body: gripper
   pos:
-  - -0.00851
-  - 0.01608
-  - -0.01904
+  - 0.00171
+  - 0.05892
+  - -0.03598
   xyaxes:
-  - 0.98958
-  - -0.07427
-  - 0.12338
-  - -0.01444
-  - 0.80124
-  - 0.59817
-  fovy: 59.34121311579336
-  f_px: 421.2668048527167
-  k1: 0.005791922950699955
+  - 0.99346
+  - -0.09505
+  - -0.06328
+  - 0.04765
+  - 0.84873
+  - -0.52667
+  fovy: 49.71850938826716
+  f_px: 518.0
+  k1: 0.0
   k2: 0.0
   rvec_in_gripper:
-  - 3.771238811176053
-  - -0.06298306435258051
-  - 0.28070120508852753
+  - 2.5850392331875955
+  - -0.09997544604562342
+  - -0.11703244931239226
   jaw_silhouette_iou:
-    home: 0.331
-    P1: 0.699
-    P3: 0.696
-  lens_to_fixed_tip_m: 0.08693184885089716
-  optical_axis_vs_jaw_deg: 37.6448745648336
-  method: jaw-silhouette fit on wrist_cam_frame + M4 P1/P3 wrist frames
-  rms_px: null
-  status: 'UNCALIBRATED: silhouette fits did not converge (jaw IoU 0.33-0.70); redo
-    after checkerboard intrinsics (notes/phase3.md)'
+    home: 0.752
+    P1: 0.409
+    P3: 0.39
+  tip_err_px:
+  - 0.5
+  - 1.2
+  - 0.5
+  - 3.7
+  method: measured lens + datasheet f; orientation from jaw tips + P1/P3 table features
+    (scripts/wrist_fit_scene.py)
+  status: 'CALIBRATED WITHOUT CHECKERBOARD (user decision 2026-10-21): f 518 px from
+    the Orbbec Gemini 2 datasheet, k1 = 0; mount from jaw tips + P1/P3 features. Lens
+    out-of-plane offset (fit ~5-6 cm vs measured 2 cm) pending user check'
+  tip_and_scene_err_px:
+    home:tip_fixed: 2.8
+    home:tip_moving: 4.4
+    P1:tip_fixed: 2.8
+    P3:tip_fixed: 3.4
+    P1:stacking_spot: 25.3
+    P1:stack_corner_4: 21.4
+    P3:stacking_spot: 17.5
+    P3:stack_corner_4: 31.8

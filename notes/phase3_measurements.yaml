@@ -1,0 +1,10 @@
+# Real-world measurements for Phase 3 (user, 2026-10-21)
+backdrop: {height_m: 0.185, length_m: 0.28, starts_along_right_edge_from_arm_corner_m: 0.10, wrap: none}
+black_mat_thickness: negligible
+wrist_camera:
+  model: Orbbec Gemini 2 (RGB stream 640x480, 4:3 mode)
+  datasheet: {housing_mm: [90, 25, 30], mass_g: 98, rgb_fov_4_3_deg: [63, 50], f_px_at_640x480: 518}
+  offset_from_fixed_jaw_tip_in_measurements_yaml: {along_jaws_m: 0.036, sideways_m: 0.013}
+  check: "inconsistent with wrist_cam_frame.png (tip ~36 px wide -> lens 10-14 cm from the tips) and gripper_open.jpg; re-measured below"
+  remeasured_2026_10_21: {along_jaws_back_from_fixed_tip_m: [0.075, 0.080], in_plane_away_from_moving_jaw_m: 0.027, out_of_jaw_plane_m: 0.020, tilt: "not given (fit)"}
+  side_photos_pending: [inputs/photos/wrist_cam_side_A.jpg, inputs/photos/wrist_cam_side_B.jpg]

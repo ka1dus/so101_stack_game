@@ -10,3 +10,15 @@ Pixel extent of the box's top face: length / width (native 640x480 | SmolVLA 512
    no35  length  35.7 px / width  26.4 px  | x0.8:  28.6 /  21.1
    no10  length  30.9 px / width  21.8 px  | x0.8:  24.8 /  17.4
    No.3 vs No.35 difference: length 6.0 px, width 3.9 px (x0.8: 4.8 / 3.1)
+
+Section 3d size check, WRIST camera (provisional calibration), pre-grasp: jaws vertical, tips 3 cm above the box top
+ box at supply centre:
+   no3   length  275.8 px / width  157.3 px | x0.8:  220.7 /  125.8 | depth 11.4 cm | jaw tilt 0 deg | fully in view
+   no35  length  235.0 px / width  140.3 px | x0.8:  188.0 /  112.2 | depth 11.4 cm | jaw tilt 0 deg | fully in view
+   no10  length  202.5 px / width  118.1 px | x0.8:  162.0 /   94.5 | depth 11.4 cm | jaw tilt 0 deg | fully in view
+   No.3 vs No.35: length 40.9 px, width 17.0 px
+ box at stacking spot (box on a 3-box stack):
+   no3   length  274.7 px / width  156.4 px | x0.8:  219.8 /  125.2 | depth 11.4 cm | jaw tilt 3 deg | fully in view
+   no35  length  233.8 px / width  139.8 px | x0.8:  187.0 /  111.8 | depth 11.4 cm | jaw tilt 3 deg | fully in view
+   no10  length  201.7 px / width  117.9 px | x0.8:  161.3 /   94.3 | depth 11.4 cm | jaw tilt 2 deg | fully in view
+   No.3 vs No.35: length 41.0 px, width 16.7 px
