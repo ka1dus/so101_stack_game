@@ -1,0 +1,21 @@
+ep    1/20 h=4 no35_on_no35    374 frames | attempts 1, fails {} | 18.7 s/ep
+ep    2/20 h=5 no3_on_no35     352 frames | attempts 2, fails {} | 18.0 s/ep
+ep    3/20 h=4 no35_on_no10    361 frames | attempts 3, fails {} | 17.5 s/ep
+ep    4/20 h=2 no3_on_no35     351 frames | attempts 4, fails {} | 15.5 s/ep
+ep    5/20 h=5 no35_on_no35    356 frames | attempts 5, fails {} | 16.0 s/ep
+ep    6/20 h=1 no35_on_no35    334 frames | attempts 6, fails {} | 15.7 s/ep
+ep    7/20 h=4 no3_on_no3      352 frames | attempts 7, fails {} | 15.3 s/ep
+ep    8/20 h=1 no35_on_no10    333 frames | attempts 8, fails {} | 14.5 s/ep
+ep    9/20 h=3 no3_on_no10     356 frames | attempts 9, fails {} | 14.3 s/ep
+ep   10/20 h=3 no35_on_no35    358 frames | attempts 10, fails {} | 14.8 s/ep
+ep   11/20 h=5 no3_on_no3      398 frames | attempts 11, fails {} | 14.7 s/ep
+ep   12/20 h=3 no3_on_no10     350 frames | attempts 12, fails {} | 14.4 s/ep
+ep   13/20 h=5 no10_on_no35    343 frames | attempts 13, fails {} | 14.6 s/ep
+ep   14/20 h=6 no35_on_no35    345 frames | attempts 14, fails {} | 14.8 s/ep
+ep   15/20 h=3 no3_on_no3      346 frames | attempts 15, fails {} | 15.0 s/ep
+ep   16/20 h=6 no35_on_no35    339 frames | attempts 16, fails {} | 14.9 s/ep
+ep   17/20 h=3 no10_on_no35    394 frames | attempts 17, fails {} | 15.2 s/ep
+ep   18/20 h=6 no3_on_no35     339 frames | attempts 18, fails {} | 15.2 s/ep
+ep   19/20 h=2 no3_on_no35     333 frames | attempts 19, fails {} | 14.9 s/ep
+ep   20/20 h=3 no3_on_no10     329 frames | attempts 20, fails {} | 14.9 s/ep
+done: 20 episodes in /Users/maxchan/so101_stack_game/data/raw/act_pilot (20 attempts, failures {})

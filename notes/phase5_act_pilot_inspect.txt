@@ -1,0 +1,18 @@
+20 episodes in /Users/maxchan/so101_stack_game/data/raw/act_pilot
+state range vs calibrated limits (LeRobot units):
+  shoulder_pan   state [  -69.2,    32.4]  action [  -69.2,    32.3]  limits [ -119.4,   119.4]
+  shoulder_lift  state [  -90.0,    17.2]  action [  -89.6,    17.1]  limits [ -105.3,   105.3]
+  elbow_flex     state [  -21.4,    96.5]  action [  -21.4,    96.4]  limits [  -97.0,    97.0]
+  wrist_flex     state [   45.5,   101.9]  action [   45.5,   101.9]  limits [ -101.9,   101.9]
+  wrist_roll     state [  -10.3,   175.9]  action [  -10.3,   175.9]  limits [ -180.0,   180.0]
+  gripper        state [    0.8,    27.4]  action [   -0.0,    27.2]  limits [    0.0,   100.0]
+max |action - state| per joint: {'shoulder_pan': np.float32(2.3), 'shoulder_lift': np.float32(2.2), 'elbow_flex': np.float32(2.6), 'wrist_flex': np.float32(1.3), 'wrist_roll': np.float32(2.4), 'gripper': np.float32(20.8)}
+max per-frame action step:      {'shoulder_pan': np.float32(3.08), 'shoulder_lift': np.float32(3.08), 'elbow_flex': np.float32(3.07), 'wrist_flex': np.float32(1.62), 'wrist_roll': np.float32(3.06), 'gripper': np.float32(2.26)}
+share of frames with a body-joint |action - state| > 10 deg (max_relative_target): 0.00 %
+frames per episode: min 329, median 350, max 398 (11.7 s mean)
+heights: {1: 2, 2: 2, 3: 6, 4: 3, 5: 4, 6: 3}
+picked types: {'no35': 8, 'no3': 10, 'no10': 2}
+pairings: {'no35_on_no35': 6, 'no3_on_no35': 4, 'no35_on_no10': 2, 'no3_on_no3': 3, 'no3_on_no10': 3, 'no10_on_no35': 2}
+max per-level stack offset (mm): median 6.5, max 22.3
+supply modes: {'game_progression': 10, 'random': 10} | plain-colour boxes: 0 | shadows on: 11
+figures: notes/img/phase5_act_pilot_joints.png notes/img/phase5_act_pilot_dist.png notes/img/phase5_act_pilot_frames.png

@@ -129,6 +129,11 @@ def side_free(b, others, side, clear):
 FIXED_CLEAR, MOVING_CLEAR = 0.010, 0.010
 
 
+def jaw_sides(b, others):
+    """All feasible moving-jaw sides (+1/-1) for box b."""
+    return [side for side in (1, -1) if side_free(b, others, side, MOVING_CLEAR) and side_free(b, others, -side, FIXED_CLEAR)]
+
+
 def jaw_side(b, others):
     """+1/-1 = which width side the MOVING jaw goes on (the other side gets the fixed jaw); 0 = not pickable."""
     for side in (1, -1):

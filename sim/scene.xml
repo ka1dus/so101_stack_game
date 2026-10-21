@@ -31,19 +31,19 @@
     <texture type="cube" colorspace="linear" name="tex_no3" fileright="cube/no3_right.png" fileleft="cube/no3_left.png" fileup="cube/no3_up.png" filedown="cube/no3_down.png" filefront="cube/no3_front.png" fileback="cube/no3_back.png"/>
     <texture type="cube" colorspace="linear" name="tex_no35" fileright="cube/no35_right.png" fileleft="cube/no35_left.png" fileup="cube/no35_up.png" filedown="cube/no35_down.png" filefront="cube/no35_front.png" fileback="cube/no35_back.png"/>
     <texture type="cube" colorspace="linear" name="tex_no10" fileright="cube/no10_right.png" fileleft="cube/no10_left.png" fileup="cube/no10_up.png" filedown="cube/no10_down.png" filefront="cube/no10_front.png" fileback="cube/no10_back.png"/>
-    <material name="base_motor_holder_so101_v1_material" rgba="1 0.82 0.12 1"/>
-    <material name="base_so101_v2_material" rgba="1 0.82 0.12 1"/>
+    <material name="base_motor_holder_so101_v1_material" rgba="0.07 0.07 0.08 1"/>
+    <material name="base_so101_v2_material" rgba="0.07 0.07 0.08 1"/>
     <material name="sts3215_03a_v1_material" rgba="0.1 0.1 0.1 1"/>
-    <material name="waveshare_mounting_plate_so101_v2_material" rgba="1 0.82 0.12 1"/>
-    <material name="motor_holder_so101_base_v1_material" rgba="1 0.82 0.12 1"/>
-    <material name="rotation_pitch_so101_v1_material" rgba="1 0.82 0.12 1"/>
-    <material name="upper_arm_so101_v1_material" rgba="1 0.82 0.12 1"/>
-    <material name="under_arm_so101_v1_material" rgba="1 0.82 0.12 1"/>
-    <material name="motor_holder_so101_wrist_v1_material" rgba="1 0.82 0.12 1"/>
+    <material name="waveshare_mounting_plate_so101_v2_material" rgba="0.07 0.07 0.08 1"/>
+    <material name="motor_holder_so101_base_v1_material" rgba="0.07 0.07 0.08 1"/>
+    <material name="rotation_pitch_so101_v1_material" rgba="0.07 0.07 0.08 1"/>
+    <material name="upper_arm_so101_v1_material" rgba="0.07 0.07 0.08 1"/>
+    <material name="under_arm_so101_v1_material" rgba="0.07 0.07 0.08 1"/>
+    <material name="motor_holder_so101_wrist_v1_material" rgba="0.07 0.07 0.08 1"/>
     <material name="sts3215_03a_no_horn_v1_material" rgba="0.1 0.1 0.1 1"/>
-    <material name="wrist_roll_pitch_so101_v2_material" rgba="1 0.82 0.12 1"/>
-    <material name="wrist_roll_follower_so101_v1_material" rgba="1 0.82 0.12 1"/>
-    <material name="moving_jaw_so101_v1_material" rgba="1 0.82 0.12 1"/>
+    <material name="wrist_roll_pitch_so101_v2_material" rgba="0.07 0.07 0.08 1"/>
+    <material name="wrist_roll_follower_so101_v1_material" rgba="0.07 0.07 0.08 1"/>
+    <material name="moving_jaw_so101_v1_material" rgba="0.07 0.07 0.08 1"/>
     <material name="carpet" texture="carpet" texrepeat="8 8" texuniform="true"/>
     <material name="mat_no3" texture="tex_no3"/>
     <material name="mat_no35" texture="tex_no35"/>
@@ -65,6 +65,8 @@
 
   <worldbody>
     <geom name="floor" size="3 3 0.1" pos="0 0 -0.62" type="plane" material="carpet"/>
+    <geom name="wall_lower" size="1.5 0.01 0.335" pos="-0.443 -0.0790657 -0.285" quat="0.766714 0 0 -0.641989" type="box" contype="0" conaffinity="0" rgba="0.88 0.89 0.9 1"/>
+    <geom name="wall_upper" size="1.5 0.01 0.6" pos="-0.443 -0.0790657 0.65" quat="0.766714 0 0 -0.641989" type="box" contype="0" conaffinity="0" rgba="0.07 0.09 0.2 1"/>
     <geom name="table_top" size="0.19 0.19 0.01" pos="0.1881 0.0531 -0.01" quat="0.323207 0 0 0.946328" type="box" priority="1" friction="0.3" rgba="0.93 0.94 0.96 1"/>
     <geom name="table_leg0" size="0.0125 0.0125 0.31" pos="0.437096 0.0849354 -0.31" quat="0.323207 0 0 0.946328" type="box" contype="0" conaffinity="0" rgba="0.93 0.94 0.96 1"/>
     <geom name="table_leg1" size="0.0125 0.0125 0.31" pos="0.219935 -0.195896 -0.31" quat="0.323207 0 0 0.946328" type="box" contype="0" conaffinity="0" rgba="0.93 0.94 0.96 1"/>

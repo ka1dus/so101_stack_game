@@ -115,6 +115,11 @@ def finger_boxes():
     return out
 
 
+WALL_DIST = 0.45          # APPROX: wall this far behind the pan axis along the front camera's view (randomized)
+WALL_PANEL_TOP = 0.05     # APPROX: top of the light lower panel above the table top (randomized)
+ARM_RGBA = [0.07, 0.07, 0.08, 1]   # black PLA arm (randomized in data generation)
+
+
 def make_cube_textures():
     """Square, pre-rotated copies of the face textures for MuJoCo cube textures."""
     out = SIM / "assets/textures/cube"
@@ -172,6 +177,18 @@ def build():
     spec.add_material(name="carpet", textures=["", "carpet"], texrepeat=[8, 8], texuniform=True)
     table_h = MEAS["table"]["height_from_floor"]
     wb.add_geom(name="floor", type=mujoco.mjtGeom.mjGEOM_PLANE, size=[3, 3, 0.1], pos=[0, 0, -table_h], material="carpet")
+    # room wall behind the arm as seen from `front` (front_cam_stack3.png: light lower panel, dark blue wall above).
+    # APPROX: distance and panel height not measured; randomized in data generation. Faces the front camera.
+    fcam = yaml.safe_load(CAMS_PATH.read_text())["front"]
+    look = -np.cross(fcam["xyaxes"][:3], fcam["xyaxes"][3:])[:2]; look /= np.linalg.norm(look)
+    wyaw = np.degrees(np.arctan2(look[1], look[0])) + 90         # wall's long axis perpendicular to the view
+    wc = look * WALL_DIST
+    wb.add_geom(name="wall_lower", type=mujoco.mjtGeom.mjGEOM_BOX, size=[1.5, 0.01, (table_h + WALL_PANEL_TOP) / 2],
+                pos=[wc[0], wc[1], (WALL_PANEL_TOP - table_h) / 2], quat=yaw_quat(wyaw), rgba=[0.88, 0.89, 0.9, 1],
+                contype=0, conaffinity=0)
+    wb.add_geom(name="wall_upper", type=mujoco.mjtGeom.mjGEOM_BOX, size=[1.5, 0.01, 0.6],
+                pos=[wc[0], wc[1], WALL_PANEL_TOP + 0.6], quat=yaw_quat(wyaw), rgba=[0.07, 0.09, 0.2, 1],
+                contype=0, conaffinity=0)
 
     # ---- table ----
     T = LAY["table"]; c = np.array(T["centre"]); hd = T["heading_deg"]; s = T["size_m"] / 2
@@ -280,6 +297,11 @@ def build():
                     rgba=[0.05, 0.05, 0.06, 1], mass=0.098)
     else:   # placeholder: measurements.yaml offsets from the fixed jaw tip, looking along the jaws
         spec.body("gripper").add_camera(name="wrist", pos=[-0.0089, 0.0128, -0.068], xyaxes=[0, -1, 0, -1, 0, 0], fovy=70)
+
+    # ---- the real arm is printed in black (front_cam_stack3.png, wrist_cam_frame.png); the vendor model is yellow ----
+    for mat in spec.materials:
+        if np.allclose(mat.rgba[:3], [1.0, 0.82, 0.12], atol=0.05):
+            mat.rgba = ARM_RGBA
 
     # ---- home keyframe (LeRobot home pose through the validated mapping) ----
     home = jm.real_to_sim(np.array([MEAS["arm"]["home_pose"][j] for j in JOINT_NAMES]))
