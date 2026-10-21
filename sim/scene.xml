@@ -71,7 +71,7 @@
     <geom name="table_leg2" size="0.0125 0.0125 0.31" pos="0.156265 0.302096 -0.31" quat="0.323207 0 0 0.946328" type="box" contype="0" conaffinity="0" rgba="0.93 0.94 0.96 1"/>
     <geom name="table_leg3" size="0.0125 0.0125 0.31" pos="-0.060896 0.0212646 -0.31" quat="0.323207 0 0 0.946328" type="box" contype="0" conaffinity="0" rgba="0.93 0.94 0.96 1"/>
     <geom name="table_shelf" size="0.19 0.19 0.005" pos="0.1881 0.0531 -0.4" quat="0.323207 0 0 0.946328" type="box" contype="0" conaffinity="0" rgba="0.93 0.94 0.96 1"/>
-    <geom name="supply_mat" size="0.1045 0.096 0.00025" pos="0.1619 0.1765 0.00025" quat="0.893567 0 0 0.448929" type="box" priority="1" friction="0.35" rgba="0.03 0.03 0.03 1"/>
+    <geom name="supply_mat" size="0.1145 0.096 0.00025" pos="0.1565 0.1724 0.00025" quat="0.894506 0 0 0.447057" type="box" priority="1" friction="0.35" rgba="0.03 0.03 0.03 1"/>
     <geom name="stack_area" size="0.107 0.073 0.0001" pos="0.2304 -0.1071 0.0001" quat="0.896332 0 0 0.443384" type="box" priority="1" friction="0.29" rgba="0.96 0.76 0.12 1"/>
     <geom name="reach_line_tape" size="0.0964578 0.0085 0.0001" pos="0.1823 0.2039 0.0006" quat="0.934185 0 0 -0.356788" type="box" contype="0" conaffinity="0" rgba="0.92 0.92 0.9 1"/>
     <geom name="backdrop" size="0.13998 0.0025 0.0925" pos="0.109928 -0.12976 0.0925" quat="0.946344 0 0 -0.323161" type="box" rgba="0.02 0.02 0.02 1"/>
@@ -146,35 +146,35 @@
         </body>
       </body>
     </body>
-    <body name="box0_no3" pos="0.166199 0.0985159 0.0095" quat="0.314407 0 0 0.949288">
+    <body name="box0_no3" pos="0.160473 0.0943986 0.0095" quat="0.316394 0 0 0.948628">
       <joint name="box0_free" type="free"/>
       <geom name="box0_geom" size="0.035 0.02 0.0085" type="box" contype="2" conaffinity="3" friction="0.49" mass="0.038" material="mat_no3"/>
     </body>
-    <body name="box1_no3" pos="0.202015 0.146654 0.0095" quat="0.314407 0 0 0.949288">
+    <body name="box1_no3" pos="0.196489 0.142386 0.0095" quat="0.316394 0 0 0.948628">
       <joint name="box1_free" type="free"/>
       <geom name="box1_geom" size="0.035 0.02 0.0085" type="box" contype="2" conaffinity="3" friction="0.49" mass="0.038" material="mat_no3"/>
     </body>
-    <body name="box2_no3" pos="0.23783 0.194792 0.0095" quat="0.314407 0 0 0.949288">
+    <body name="box2_no3" pos="0.232506 0.190373 0.0095" quat="0.316394 0 0 0.948628">
       <joint name="box2_free" type="free"/>
       <geom name="box2_geom" size="0.035 0.02 0.0085" type="box" contype="2" conaffinity="3" friction="0.49" mass="0.038" material="mat_no3"/>
     </body>
-    <body name="box3_no35" pos="0.0859696 0.158208 0.009" quat="0.314407 0 0 0.949288">
+    <body name="box3_no35" pos="0.0804937 0.154427 0.009" quat="0.316394 0 0 0.948628">
       <joint name="box3_free" type="free"/>
       <geom name="box3_geom" size="0.03 0.0175 0.008" type="box" contype="2" conaffinity="3" friction="0.36" mass="0.031" material="mat_no35"/>
     </body>
-    <body name="box4_no35" pos="0.121785 0.206346 0.009" quat="0.314407 0 0 0.949288">
+    <body name="box4_no35" pos="0.116511 0.202414 0.009" quat="0.316394 0 0 0.948628">
       <joint name="box4_free" type="free"/>
       <geom name="box4_geom" size="0.03 0.0175 0.008" type="box" contype="2" conaffinity="3" friction="0.36" mass="0.031" material="mat_no35"/>
     </body>
-    <body name="box5_no35" pos="0.157601 0.254484 0.009" quat="0.314407 0 0 0.949288">
+    <body name="box5_no35" pos="0.152527 0.250401 0.009" quat="0.316394 0 0 0.948628">
       <joint name="box5_free" type="free"/>
       <geom name="box5_geom" size="0.03 0.0175 0.008" type="box" contype="2" conaffinity="3" friction="0.36" mass="0.031" material="mat_no35"/>
     </body>
-    <body name="box6_no35" pos="0.1231 0.124351 0.009" quat="0.314407 0 0 0.949288">
+    <body name="box6_no35" pos="0.117482 0.120414 0.009" quat="0.316394 0 0 0.948628">
       <joint name="box6_free" type="free"/>
       <geom name="box6_geom" size="0.03 0.0175 0.008" type="box" contype="2" conaffinity="3" friction="0.36" mass="0.031" material="mat_no35"/>
     </body>
-    <body name="box7_no10" pos="0.2007 0.228649 0.0075" quat="0.314407 0 0 0.949288">
+    <body name="box7_no10" pos="0.195518 0.224386 0.0075" quat="0.316394 0 0 0.948628">
       <joint name="box7_free" type="free"/>
       <geom name="box7_geom" size="0.026 0.0145 0.0065" type="box" contype="2" conaffinity="3" friction="0.43" mass="0.021" material="mat_no10"/>
     </body>
@@ -190,6 +190,6 @@
   </actuator>
 
   <keyframe>
-    <key name="home" qpos="-0.0551524 -1.42489 1.57027 0.763407 -1.5139 -0.170796 0.166199 0.0985159 0.0095 0.314407 0 0 0.949288 0.202015 0.146654 0.0095 0.314407 0 0 0.949288 0.23783 0.194792 0.0095 0.314407 0 0 0.949288 0.0859696 0.158208 0.009 0.314407 0 0 0.949288 0.121785 0.206346 0.009 0.314407 0 0 0.949288 0.157601 0.254484 0.009 0.314407 0 0 0.949288 0.1231 0.124351 0.009 0.314407 0 0 0.949288 0.2007 0.228649 0.0075 0.314407 0 0 0.949288" ctrl="-0.0551524 -1.42489 1.57027 0.763407 -1.5139 -0.170796"/>
+    <key name="home" qpos="-0.0551524 -1.42489 1.57027 0.763407 -1.5139 -0.170796 0.160473 0.0943986 0.0095 0.316394 0 0 0.948628 0.196489 0.142386 0.0095 0.316394 0 0 0.948628 0.232506 0.190373 0.0095 0.316394 0 0 0.948628 0.0804937 0.154427 0.009 0.316394 0 0 0.948628 0.116511 0.202414 0.009 0.316394 0 0 0.948628 0.152527 0.250401 0.009 0.316394 0 0 0.948628 0.117482 0.120414 0.009 0.316394 0 0 0.948628 0.195518 0.224386 0.0075 0.316394 0 0 0.948628" ctrl="-0.0551524 -1.42489 1.57027 0.763407 -1.5139 -0.170796"/>
   </keyframe>
 </mujoco>

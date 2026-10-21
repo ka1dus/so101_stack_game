@@ -140,12 +140,15 @@ def main():
     p.add_argument("--id", required=True)
     p.add_argument("--speed", type=float, default=10.0, help="deg/s (slow for precise touching)")
     p.add_argument("--out", default=None, help="output JSON (default: table_points_<time>.json)")
-    p.add_argument("--points", choices=["table", "multipose"], default="table",
-                   help="table = original 13 table/mat points; multipose = Phase 1 joint-offset protocol")
+    p.add_argument("--points", choices=["table", "multipose", "supply"], default="table",
+                   help="table = original 13 table/mat points; multipose = Phase 1 joint-offset protocol; "
+                        "supply = the 4 black-mat corners only (after re-taping the mat, Phase 5)")
     args = p.parse_args()
     global POINTS
     if args.points == "multipose":
         POINTS = POINTS_MULTIPOSE
+    elif args.points == "supply":
+        POINTS = [f"supply_corner_{i}" for i in (1, 2, 3, 4)]   # 1 = nearest the arm, then clockwise seen from above
 
     out = Path(args.out or f"table_points_{datetime.now():%Y%m%d_%H%M%S}.json")
 

@@ -1,0 +1,3 @@
+expanded mat: size [0.22899999999999998, 0.192] corner-fit residuals (mm) [2.5, 4.3, 3.8, 5.7]
+usable on the arm side of the tape: 62 % of the mat
+loose 1 cm-gap grid: 8/8 boxes fit on the arm side of the tape; 8 pickable at the start; robot stuck in 0/300 games (random human)

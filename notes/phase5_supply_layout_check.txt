@@ -1,0 +1,31 @@
+mat as now (reach-line tape): usable 61 % of the mat | corners r = [15.2 35.  36.3 18. ] cm
+   7 boxes in the supply: layout found 0/60, of which with a pickable box 0
+   6 boxes in the supply: layout found 0/60, of which with a pickable box 0
+   5 boxes in the supply: layout found 25/60, of which with a pickable box 21
+mat moved 4 cm toward the arm (no tape; 29 cm limit): usable 88 % of the mat | corners r = [12.1 31.2 32.5 15. ] cm
+   7 boxes in the supply: layout found 46/60, of which with a pickable box 40
+   6 boxes in the supply: layout found 59/60, of which with a pickable box 58
+   5 boxes in the supply: layout found 60/60, of which with a pickable box 58
+   nearest corner to the pan axis 12.1 cm
+mat moved 5 cm toward the arm (no tape; 29 cm limit): usable 94 % of the mat | corners r = [11.4 30.3 31.5 14.3] cm
+   7 boxes in the supply: layout found 54/60, of which with a pickable box 51
+   6 boxes in the supply: layout found 60/60, of which with a pickable box 60
+   5 boxes in the supply: layout found 60/60, of which with a pickable box 59
+   nearest corner to the pan axis 11.4 cm
+mat moved 6 cm toward the arm (no tape; 29 cm limit): usable 97 % of the mat | corners r = [10.7 29.4 30.5 13.6] cm
+   7 boxes in the supply: layout found 58/60, of which with a pickable box 55
+   6 boxes in the supply: layout found 60/60, of which with a pickable box 59
+   5 boxes in the supply: layout found 60/60, of which with a pickable box 60
+   nearest corner to the pan axis 10.7 cm
+
+MAT MOVED 5 cm toward the arm, along the line from its centre to the pan axis:
+  corners on the table: [np.False_, np.False_, np.True_, np.True_] | overlaps the yellow area: False
+  move direction (arm frame): [-0.676 -0.737]; new centre [12.8 14. ] cm (was [16.2 17.7])
+  grasp at near corner 1 (+3 cm in), r 12.3 cm, yaw   0: IK err 0.0 mm, tilt 0.1 deg, arm-table contact False
+  grasp at near corner 1 (+3 cm in), r 12.3 cm, yaw  45: IK err 0.0 mm, tilt 0.1 deg, arm-table contact False
+  grasp at near corner 1 (+3 cm in), r 12.3 cm, yaw  90: IK err 0.0 mm, tilt 0.1 deg, arm-table contact False
+  grasp at near corner 1 (+3 cm in), r 12.3 cm, yaw 135: IK err 0.0 mm, tilt 0.1 deg, arm-table contact False
+  grasp at near corner 4 (+3 cm in), r 14.3 cm, yaw   0: IK err 100.2 mm, tilt 22.8 deg, arm-table contact True
+  grasp at near corner 4 (+3 cm in), r 14.3 cm, yaw  45: IK err 97.6 mm, tilt 23.5 deg, arm-table contact True
+  grasp at near corner 4 (+3 cm in), r 14.3 cm, yaw  90: IK err 97.9 mm, tilt 24.0 deg, arm-table contact True
+  grasp at near corner 4 (+3 cm in), r 14.3 cm, yaw 135: IK err 107.6 mm, tilt 23.1 deg, arm-table contact True

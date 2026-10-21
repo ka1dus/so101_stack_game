@@ -1,0 +1,10 @@
+best mat positions (slide toward the arm along the left edge, offset from the edge):
+  slide  4.0 cm, offset 0.5 cm: pickable  99.6 % | 5.1 cm from yellow, 9.4 cm from the pan axis | corner r = [11.5 31.  32.7 15.6]
+  slide  4.0 cm, offset 1.0 cm: pickable  99.6 % | 4.6 cm from yellow, 9.4 cm from the pan axis | corner r = [11.2 30.9 32.9 16. ]
+  slide  4.0 cm, offset 1.5 cm: pickable  99.1 % | 4.1 cm from yellow, 9.4 cm from the pan axis | corner r = [11.  30.8 33.1 16.4]
+  slide  4.0 cm, offset 2.0 cm: pickable  99.1 % | 3.6 cm from yellow, 9.3 cm from the pan axis | corner r = [10.7 30.7 33.3 16.8]
+  slide  4.5 cm, offset 0.5 cm: pickable  98.2 % | 5.2 cm from yellow, 8.9 cm from the pan axis | corner r = [11.1 30.5 32.3 15.3]
+  slide  5.0 cm, offset 0.5 cm: pickable  98.2 % | 5.2 cm from yellow, 8.4 cm from the pan axis | corner r = [10.7 30.  31.8 15. ]
+  slide  5.5 cm, offset 0.5 cm: pickable  98.2 % | 5.2 cm from yellow, 7.9 cm from the pan axis | corner r = [10.4 29.6 31.3 14.7]
+  slide  4.0 cm, offset 2.5 cm: pickable  98.2 % | 3.1 cm from yellow, 9.3 cm from the pan axis | corner r = [10.5 30.6 33.5 17.2]
+current mat: pickable 76.9 %

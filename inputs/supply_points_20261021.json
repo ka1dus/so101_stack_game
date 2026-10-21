@@ -1,0 +1,53 @@
+{
+  "robot_id": "my_follower_arm",
+  "recorded_at": "2026-10-21T16:23:09",
+  "units": "LeRobot degrees (use_degrees=True); gripper 0-100",
+  "touch_point": "closed gripper jaw tips touching the table",
+  "points": [
+    {
+      "label": "supply_corner_1",
+      "joints": {
+        "shoulder_pan": -81.143,
+        "shoulder_lift": -66.901,
+        "elbow_flex": 88.879,
+        "wrist_flex": 48.967,
+        "wrist_roll": 9.099,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "supply_corner_2",
+      "joints": {
+        "shoulder_pan": -63.385,
+        "shoulder_lift": 42.11,
+        "elbow_flex": -27.077,
+        "wrist_flex": 49.055,
+        "wrist_roll": 8.747,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "supply_corner_3",
+      "joints": {
+        "shoulder_pan": -32.44,
+        "shoulder_lift": 48.791,
+        "elbow_flex": -36.044,
+        "wrist_flex": 48.967,
+        "wrist_roll": 8.747,
+        "gripper": 0.607
+      }
+    },
+    {
+      "label": "supply_corner_4",
+      "joints": {
+        "shoulder_pan": -5.89,
+        "shoulder_lift": -19.429,
+        "elbow_flex": 56.615,
+        "wrist_flex": 48.967,
+        "wrist_roll": 8.835,
+        "gripper": 0.607
+      }
+    }
+  ],
+  "skipped": []
+}

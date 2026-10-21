@@ -53,18 +53,22 @@ class Sim:
         self.home = self.jm.real_to_sim(np.array([MEAS["arm"]["home_pose"][j] for j in JOINT_NAMES]))
         self.steps_per_ctrl = int(round(1 / CTRL_HZ / self.m.opt.timestep))
         self.kin = mujoco.MjData(self.m)
+        self.on_tick = None            # called after every 30 Hz control tick (recording hook)
 
     def gripper_sim(self, reading):
         return self.jm.real_to_sim(np.r_[np.zeros(5), reading])[5]
 
     # ---- IK: grip point (gripper frame) to a world point, jaws vertical, gripper x along a world direction ----
-    def ik(self, p_grip, target, xdir, seeds, w_orient=100.0):
+    def ik(self, p_grip, target, xdir, seeds, w_orient=100.0, signed=False):
         k = self.kin
         def r(q):
             k.qpos[self.qadr] = q; mujoco.mj_kinematics(self.m, k)
             R = k.xmat[self.gb].reshape(3, 3)
             pos = k.xpos[self.gb] + R @ p_grip
-            return np.r_[(pos - target) * 1000, (R[:, 2] - [0, 0, 1]) * w_orient, (R[:, 0] @ np.r_[-xdir[1], xdir[0], 0]) * w_orient]
+            r = np.r_[(pos - target) * 1000, (R[:, 2] - [0, 0, 1]) * w_orient, (R[:, 0] @ np.r_[-xdir[1], xdir[0], 0]) * w_orient]
+            if signed:                                   # gripper x must point along +xdir (moving jaw side)
+                r = np.r_[r, min(0.0, R[:, 0] @ np.r_[xdir[0], xdir[1], 0]) * w_orient]
+            return r
         best = None
         for s in seeds:
             sol = least_squares(r, np.clip(s, self.rng_lim[:, 0] + 1e-3, self.rng_lim[:, 1] - 1e-3),
@@ -91,6 +95,8 @@ class Sim:
                 mujoco.mj_step(self.m, self.d)
             if video is not None:
                 video.append(self.d.qpos.copy())
+            if self.on_tick is not None:
+                self.on_tick()
 
     def wait(self, t, video=None):
         for _ in range(int(t * CTRL_HZ)):
@@ -98,6 +104,8 @@ class Sim:
                 mujoco.mj_step(self.m, self.d)
             if video is not None:
                 video.append(self.d.qpos.copy())
+            if self.on_tick is not None:
+                self.on_tick()
 
 
 def random_supply_pose(rng):

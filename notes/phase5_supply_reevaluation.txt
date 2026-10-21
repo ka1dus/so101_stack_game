@@ -1,0 +1,17 @@
+  long axis along mat edge 1, 10 mm side gaps: 4 of 8 boxes fit on the arm side of the tape (left over ['no35', 'no35', 'no35', 'no35'])
+  long axis along mat edge 2, 10 mm side gaps: 4 of 8 boxes fit on the arm side of the tape (left over ['no35', 'no35', 'no35', 'no10'])
+RESULT: the 8 boxes do NOT fit as a loose grid (10 mm side gaps) on the arm side of the reach-line tape
+Traceback (most recent call last):
+  File "<stdin>", line 74, in <module>
+  File "<stdin>", line 69, in game_ok
+  File "<string>", line 4, in __eq__
+ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+
+WHOLE MAT (no tape): 8/8 fit in a 1 cm-gap grid; robot stuck in 161/300 games; 6 of them reachable+clear at the start
+expand 3 cm toward the arm: on table False, 5.6 cm from yellow, 10.4 cm from the pan axis | 8/8 fit (arm side of tape), robot stuck in 0/300 games
+   -> saved as the candidate
+
+NO CHANGE, whole mat: 2 of 8 grid boxes are beyond reach; robot stuck in 167/300 games if you take boxes at random, 0/300 if you take the far (beyond-tape) boxes first
+EXPAND 2 cm (strip trimmed at the table edge; corner overhang before trimming [ -0.    0.4  -0.2 -14.9] cm): 8/8 fit on the arm side of the tape, robot stuck 0/300 (random human)
+EXPAND 3 cm (strip trimmed at the table edge; corner overhang before trimming [ -0.    0.4  -0.2 -13.9] cm): 8/8 fit on the arm side of the tape, robot stuck 0/300 (random human)
+EXPAND 4 cm (strip trimmed at the table edge; corner overhang before trimming [ -0.    0.4  -0.2 -12.9] cm): 8/8 fit on the arm side of the tape, robot stuck 0/300 (random human)

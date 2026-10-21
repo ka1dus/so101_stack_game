@@ -17,7 +17,7 @@ table:
   centre:
   - 0.1881
   - 0.0531
-  heading_deg: 142.28602708351937
+  heading_deg: 142.2860270851526
   corners:
     far:
     - 0.4546
@@ -33,32 +33,32 @@ table:
     - -0.2134
   source: front_cam_frame.png corner picks back-projected with the calibrated front
     camera
-  picked_side_length_m: 0.39396748964649947
+  picked_side_length_m: 0.3939674898446776
 touch_heights_mm:
-  range: 8.8
-  mean: 5.9
+  range: 8.9
+  mean: 5.8
 supply_area:
   size_m:
-  - 0.209
+  - 0.22899999999999998
   - 0.192
   centre:
-  - 0.1619
-  - 0.1765
-  heading_1_2_deg: 53.35
+  - 0.1565
+  - 0.1724
+  heading_1_2_deg: 53.11
   corners:
-  - - 0.0225
-    - 0.15
-  - - 0.1473
-    - 0.3177
-  - - 0.3013
-    - 0.203
-  - - 0.1766
-    - 0.0354
+  - - 0.011
+    - 0.1385
+  - - 0.1485
+    - 0.3216
+  - - 0.302
+    - 0.2064
+  - - 0.1646
+    - 0.0232
   corner_fit_residual_mm:
-  - 3.5
-  - 3.4
-  - 2.8
-  - 7.4
+  - 2.5
+  - 4.3
+  - 3.8
+  - 5.7
 stack_area:
   size_m:
   - 0.214
@@ -89,6 +89,23 @@ stack_area:
   - -0.101
   stacking_spot_note: 'the new X (planned r = 23.0 cm, user decision 2026-10-21),
     as touched on 21 Oct: r = 22.9 cm'
+supply_area_pre_expansion:
+  size_m:
+  - 0.209
+  - 0.192
+  centre:
+  - 0.1619
+  - 0.1765
+  corners:
+  - - 0.0225
+    - 0.15
+  - - 0.1473
+    - 0.3177
+  - - 0.3013
+    - 0.203
+  - - 0.1766
+    - 0.0354
+  note: black mat before the 2 cm strip; use with photos taken before the expansion
 table_from_touches:
   size_m: 0.38
   centre:

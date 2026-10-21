@@ -120,7 +120,9 @@ def calibrate_front():
     yel = quad(cv2.inRange(empty, (15, 90, 120), (35, 255, 255)))          # clean yellow in the empty frame
     dk = cv2.inRange(stack, (0, 0, 0), (180, 255, 60)); dk[:250] = 0; dk[:, :300] = 0   # mat in the stack frame
     blk = quad(dk)
-    Kw = np.array(LAY["stack_area"]["corners"]); Sw = np.array(LAY["supply_area"]["corners"])
+    # reference photos predate the mat expansion -> calibrate against the mat as it was in them
+    Kw = np.array(LAY["stack_area"]["corners"])
+    Sw = np.array(LAY.get("supply_area_pre_expansion", LAY["supply_area"])["corners"])
     yel = match_by_distance(yel, Kw, tape[:2]); blk = match_by_distance(blk, Sw, tape[:2])
     tip = jaw_tip_home_world()
     names = [f"stack_corner_{i+1}" for i in range(4)] + [f"supply_corner_{i+1}" for i in range(4)] + ["jaw_tips_home"]

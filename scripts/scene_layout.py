@@ -62,6 +62,12 @@ EXCLUDE = {("inputs/table_points_20261021.json", "stack_corner_2")}   # 17 mm be
 NEW_X_FILE = "inputs/table_points_20261021.json"                     # its stacking_spot = the new X (23 cm)
 
 
+# After the Phase 5 mat expansion (2 cm strip along the corner-1/corner-4 edge, user 2026-10-21) the 4 supply
+# corners are re-touched with `so101_record_points.py --points supply`; the newest such file overrides them.
+SUPPLY_FILES = sorted(ROOT.glob("inputs/supply_points_*.json"))
+SUPPLY_SIZE_EXPANDED = (0.209 + 0.020, 0.192)      # side 1->2 grows by the 2 cm strip; side 2->3 unchanged
+
+
 def touched_points():
     sums, counts, per_file = {}, {}, {}
     for f in TOUCH_FILES:
@@ -73,12 +79,19 @@ def touched_points():
             sums[k] = sums.get(k, 0) + v; counts[k] = counts.get(k, 0) + 1
     P = {k: sums[k] / counts[k] for k in sums}
     P["stacking_spot"] = per_file[NEW_X_FILE]["stacking_spot"]
+    if SUPPLY_FILES:
+        for p in json.loads(SUPPLY_FILES[-1].read_text())["points"]:
+            P[p["label"]] = F.touch_point(p["joints"], OFFS, TILT)
     P["stacking_spot_original"] = per_file[TOUCH_FILES[0]]["stacking_spot"]
     return P
 
 
 def main():
     P = touched_points()
+    global SUPPLY_FILES
+    _keep, SUPPLY_FILES = SUPPLY_FILES, []
+    xy_old = {k: v[:2] for k, v in touched_points().items()}
+    SUPPLY_FILES = _keep
     z = np.array([v[2] for k, v in P.items() if not k.startswith("stacking_spot")]) - TABLE_Z_BASE
     xy = {k: v[:2] for k, v in P.items()}
 
@@ -111,6 +124,8 @@ def main():
     for key, pre in (("supply_area", "supply"), ("stack_area", "stack")):
         c = np.array([xy[f"{pre}_corner_{i}"] for i in (1, 2, 3, 4)])
         L, W = MEAS[key]["side_1_2"], MEAS[key]["side_2_3"]
+        if key == "supply_area" and SUPPLY_FILES:
+            L, W = SUPPLY_SIZE_EXPANDED
         (cx, cy, th), model, res = rect_fit(c, L, W)
         out[key] = {"size_m": [L, W], "centre": [round(float(cx), 4), round(float(cy), 4)],
                     "heading_1_2_deg": round(float(np.degrees(th)), 2),
@@ -118,6 +133,12 @@ def main():
                     "corner_fit_residual_mm": (res * 1e3).round(1).tolist()}
     # The touched X (photos up to 2026-10-21 show it) and the game's stacking spot, moved 2.5 cm
     # toward the pan axis by user decision (reach margin for the 8-box game, notes/phase3.md §10).
+    if SUPPLY_FILES:   # the pre-expansion mat (matches reference photos taken before 2026-10-21 16:23)
+        c_old = np.array([xy_old[f"supply_corner_{i}"] for i in (1, 2, 3, 4)])
+        (cx, cy, th), model, res = rect_fit(c_old, MEAS["supply_area"]["side_1_2"], MEAS["supply_area"]["side_2_3"])
+        out["supply_area_pre_expansion"] = {"size_m": [MEAS["supply_area"]["side_1_2"], MEAS["supply_area"]["side_2_3"]],
+                                            "centre": [round(float(cx), 4), round(float(cy), 4)], "corners": model.round(4).tolist(),
+                                            "note": "black mat before the 2 cm strip; use with photos taken before the expansion"}
     out["stack_area"]["stacking_spot_original"] = xy["stacking_spot_original"].round(4).tolist()
     out["stack_area"]["stacking_spot"] = xy["stacking_spot"].round(4).tolist()
     out["stack_area"]["stacking_spot_note"] = (f"the new X (planned r = {STACKING_SPOT_RADIUS_M*100:.1f} cm, user decision 2026-10-21), "
