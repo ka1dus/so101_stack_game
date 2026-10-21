@@ -1,0 +1,12 @@
+Section 3d size check, FRONT camera (calibrated). Box lying flat, long axis along the area heading.
+Pixel extent of the box's top face: length / width (native 640x480 | SmolVLA 512x512-padded = x0.8)
+ at stacking spot (stack level 1):
+   no3   length  40.1 px / width  31.1 px  | x0.8:  32.1 /  24.9
+   no35  length  34.4 px / width  27.3 px  | x0.8:  27.5 /  21.8
+   no10  length  29.8 px / width  22.6 px  | x0.8:  23.8 /  18.1
+   No.3 vs No.35 difference: length 5.7 px, width 3.8 px (x0.8: 4.6 / 3.0)
+ at supply centre:
+   no3   length  41.7 px / width  30.2 px  | x0.8:  33.3 /  24.2
+   no35  length  35.7 px / width  26.4 px  | x0.8:  28.6 /  21.1
+   no10  length  30.9 px / width  21.8 px  | x0.8:  24.8 /  17.4
+   No.3 vs No.35 difference: length 6.0 px, width 3.9 px (x0.8: 4.8 / 3.1)

@@ -1,0 +1,11 @@
+<stdin>:19: RuntimeWarning: divide by zero encountered in scalar divide
+11447 collision-free poses with jaws within 30 deg of straight down (pan toward the spot, roll -90)
+  tilt <=  2 deg at r = 25.5 +/- 1 cm: grip point up to 7.3 cm above the table  (LeRobot: lift 24, elbow -31, wrist 102)
+  tilt <=  5 deg at r = 25.5 +/- 1 cm: grip point up to 8.6 cm above the table  (LeRobot: lift 20, elbow -30, wrist 102)
+  tilt <= 10 deg at r = 25.5 +/- 1 cm: grip point up to 10.7 cm above the table  (LeRobot: lift 13, elbow -28, wrist 102)
+
+Sensitivity: highest stack the robot could place onto (place pose only, no approach margin, no offsets)
+  grip point = 0.7 cm above the stack top for a No.3; stack boxes = (z - 0.7 cm) / 1.53 cm
+  stacking point r=25.5 cm:  tilt<= 5: onto 5 ( 8.7 cm)  tilt<=10: onto 6 (10.7 cm)  tilt<=15: onto 7 (12.7 cm)  tilt<=20: onto 8 (14.6 cm)  tilt<=25: onto 9 (16.3 cm)
+  stacking point r=23.0 cm:  tilt<= 5: onto 5 (10.2 cm)  tilt<=10: onto 7 (11.9 cm)  tilt<=15: onto 8 (13.6 cm)  tilt<=20: onto 9 (15.2 cm)  tilt<=25: onto 10 (16.9 cm)
+  stacking point r=20.0 cm:  tilt<= 5: onto 6 (11.1 cm)  tilt<=10: onto 7 (12.5 cm)  tilt<=15: onto 8 (13.9 cm)  tilt<=20: onto 9 (15.4 cm)  tilt<=25: onto 10 (16.9 cm)

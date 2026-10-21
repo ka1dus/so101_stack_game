@@ -1,0 +1,33 @@
+New touches (21 Oct) through the validated mapping; heights relative to the M3 table plane
+  heights: new mean +2.6 mm, range 26.7 | old (19 Oct) mean +7.1 mm, range 10.2
+  same feature, new vs old position (xy):
+    table_left_edge_near   moved  13.5 mm  (+11.4,  +7.3)
+    table_left_edge_far    moved   8.5 mm  ( -6.6,  +5.3)
+    table_right_edge_near  moved  13.4 mm  (+11.8,  -6.3)
+    table_right_edge_far   moved   2.0 mm  ( +0.2,  +2.0)
+    supply_corner_1        moved   3.2 mm  ( +0.9,  +3.0)
+    supply_corner_2        moved   3.7 mm  ( -0.8,  +3.6)
+    supply_corner_3        moved   5.5 mm  ( +2.3,  +5.0)
+    supply_corner_4        moved   2.9 mm  ( +2.1,  +2.0)
+    stack_corner_1         moved   2.0 mm  ( +1.1,  +1.6)
+    stack_corner_2         moved  16.1 mm  (-14.9,  +6.2)
+    stack_corner_3         moved   3.3 mm  ( +2.4,  +2.3)
+    stack_corner_4         moved   1.9 mm  ( +1.6,  +0.9)
+  NEW X touched at [ 20.6 -10.1] cm (r 22.9); layout had it at [20.9 -9.6] -> 5.4 mm apart
+    i.e. -0.9 mm radial (+ away from the arm), -5.3 mm sideways (+ toward the black mat)
+  best rigid old->new: rotation +0.36 deg, shift [1.2 1.7] mm, residual rms 7.4 mm
+
+per-point height above the M3 table plane (new touches) and distance to the ruler-size rectangle corner:
+  table_left_edge_near   z   +2.8 mm
+  table_left_edge_far    z   +6.3 mm
+  table_right_edge_near  z   +3.1 mm
+  table_right_edge_far   z   +1.3 mm
+  supply_corner_1        z   +9.5 mm |   0.9 mm from the layout corner
+  supply_corner_2        z   +9.5 mm |   2.8 mm from the layout corner
+  supply_corner_3        z   +6.6 mm |   2.9 mm from the layout corner
+  supply_corner_4        z   +4.2 mm |  10.4 mm from the layout corner
+  stack_corner_1         z   +1.4 mm |   6.8 mm from the layout corner
+  stack_corner_2         z  -17.2 mm |  16.3 mm from the layout corner
+  stack_corner_3         z   +1.9 mm |   4.2 mm from the layout corner
+  stack_corner_4         z   +2.0 mm |   5.1 mm from the layout corner
+  stacking_spot          z   +2.2 mm

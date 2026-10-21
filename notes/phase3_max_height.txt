@@ -1,0 +1,7 @@
+REACH (top-down place + 5 cm straight-down approach over the stacking spot)
+  carrying no3  : can place onto stacks up to 0 boxes (top 0.0 cm) incl. +/-2 cm offsets
+  carrying no35 : can place onto stacks up to 1 boxes (top 1.6 cm) incl. +/-2 cm offsets
+  carrying no10 : can place onto stacks up to 2 boxes (top 3.2 cm) incl. +/-2 cm offsets
+VIEW (front camera, calibrated; stack top + carried box inside the image, 10 px margin)
+  stacks up to 19 boxes fit in the front view (top 30.4 cm)
+PLAYABLE MAX HEIGHT = 0 boxes (reach 0, view 19, box count 8)

@@ -1,0 +1,38 @@
+
+=== riser 6.0 cm
+  home pose touches something: False
+  carrying no3  : onto stacks up to 6 boxes   (first failure at 7: offset (0.02, 0) approach: tilt 11)
+  carrying no35 : onto stacks up to 6 boxes   (first failure at 7: offset (0.02, 0) approach: tilt 10)
+  carrying no10 : onto stacks up to 7 boxes   (first failure at 8: offset (0.02, 0) approach: tilt 13)
+  supply picks (vertical, mat level): 86% of the mat; failing points from r = 31.6 cm
+  => playable: place onto 6 boxes -> max stack 7 boxes (of 8)
+
+=== riser 7.5 cm
+  home pose touches something: False
+  carrying no3  : onto stacks up to 7 boxes   (first failure at 8: offset (0.02, 0) approach: tilt 11)
+  carrying no35 : onto stacks up to 7 boxes   (first failure at 8: offset (0.02, 0) approach: tilt 11)
+  carrying no10 : onto stacks up to 8 boxes
+  supply picks (vertical, mat level): 86% of the mat; failing points from r = 31.6 cm
+  => playable: place onto 7 boxes -> max stack 8 boxes (of 8)
+
+=== riser 9.0 cm
+  home pose touches something: False
+  carrying no3  : onto stacks up to 8 boxes
+  carrying no35 : onto stacks up to 8 boxes
+  carrying no10 : onto stacks up to 8 boxes
+  supply picks (vertical, mat level): 86% of the mat; failing points from r = 31.6 cm
+  => playable: place onto 8 boxes -> max stack 9 boxes (of 8)
+
+FRONT-CAMERA VIEW of the arm (topmost arm pixel row; 0 = top edge of the 640x480 frame)
+  riser 6.0 cm: home: top row 47, placing onto 7 (approach): top row 9
+  riser 7.5 cm: home: top row 36, placing onto 7 (approach): top row 2
+  riser 9.0 cm: home: top row 25, placing onto 7 (approach): top row -5
+  home pose touches something: False
+  carrying no3  : onto stacks up to 8 boxes
+  carrying no35 : onto stacks up to 8 boxes
+  carrying no10 : onto stacks up to 8 boxes
+  supply picks (vertical, mat level): 86% of the mat; failing points from r = 31.6 cm
+  => playable: place onto 8 boxes -> max stack 9 boxes (of 8)
+  riser 7.5 cm, approach onto 7 boxes: topmost row gripper 9, whole arm 2
+  riser 8.0 cm, approach onto 7 boxes: topmost row gripper 9, whole arm -1
+  riser 9.0 cm, approach onto 7 boxes: topmost row gripper 10, whole arm -5

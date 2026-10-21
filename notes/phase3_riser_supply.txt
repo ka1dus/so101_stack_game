@@ -1,0 +1,9 @@
+SUPPLY PICK REACH (grip point 0.7 cm above the mat top, jaws within 10 deg of vertical)
+  riser 0 cm:  85.7% of supply positions pickable; unreachable ones are at r >= 31.6 cm
+  riser 3 cm:  85.7% of supply positions pickable; unreachable ones are at r >= 31.6 cm
+  riser 6 cm:  85.7% of supply positions pickable; unreachable ones are at r >= 31.6 cm
+STACK HEIGHT WITH A RISER (spot as now, r=25.5; tilt<=10 deg; 3 cm approach; +/-2 cm offsets)
+  riser 0 cm: can place onto stacks up to 3 boxes
+  riser 3 cm: can place onto stacks up to 5 boxes
+  riser 6 cm: can place onto stacks up to 6 boxes
+  riser 9 cm: can place onto stacks up to 8 boxes

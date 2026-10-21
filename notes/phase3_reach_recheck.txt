@@ -1,0 +1,5 @@
+NO RISER, vertical (<=10 deg) place + 3 cm straight-down approach, offsets 0/+-2 cm, collision-checked
+  carrying no3  : onto stacks up to 3 boxes (game needs 7); worst tilt 9.7 deg
+  carrying no35 : onto stacks up to 3 boxes (game needs 7); worst tilt 9.5 deg
+  carrying no10 : onto stacks up to 3 boxes (game needs 7); worst tilt 9.0 deg
+  example pose, approach above a 7-box stack (LeRobot deg): [ 25.4   4.5 -32.1 101.9 109.2]

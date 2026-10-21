@@ -1,0 +1,5 @@
+target spot [ 20.6 -10.1] cm | S1 (7 cm) tilt 1.2 deg, tip err 0.0 mm | S2 (3 cm) tilt 1.2 deg, tip err 0.0 mm
+S1_above_new_spot {'shoulder_pan': 28.05, 'shoulder_lift': 14.41, 'elbow_flex': -14.83, 'wrist_flex': 96.26, 'wrist_roll': 12.23, 'gripper': 0.74}
+S2_hover_new_spot {'shoulder_pan': 27.84, 'shoulder_lift': 16.01, 'elbow_flex': -0.16, 'wrist_flex': 79.95, 'wrist_roll': 11.28, 'gripper': 0.74}
+  lowest arm point on R_raise<->S1<->S2 legs, validated mapping: 2.1 cm above the table
+  lowest arm point on R_raise<->S1<->S2 legs, all hypotheses: 1.6 cm above the table

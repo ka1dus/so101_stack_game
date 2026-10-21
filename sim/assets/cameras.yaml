@@ -1,0 +1,91 @@
+front:
+  pos:
+  - 0.8485
+  - 0.155
+  - 0.3953
+  xyaxes:
+  - -0.1672
+  - 0.98576
+  - -0.01799
+  - -0.42803
+  - -0.05613
+  - 0.90202
+  fovy: 40.31733353108517
+  f_px: 653.7558610538528
+  k1: -0.08622259127536809
+  k2: -9.999978759739973e-10
+  rvec:
+  - 1.4315849465366577
+  - 1.6754789390764322
+  - -1.0738839703161362
+  rms_px: 2.480993183655424
+  residual_px:
+    stack_corner_1: 0.3
+    stack_corner_2: 3.4
+    stack_corner_3: 1.2
+    stack_corner_4: 0.7
+    supply_corner_1: 1.6
+    supply_corner_2: 1.0
+    supply_corner_3: 1.6
+    supply_corner_4: 4.3
+    jaw_tips_home: 4.2
+  tape_offset_m: 0.022515418687060414
+  points:
+    stack_corner_1:
+    - 195.5
+    - 256.2
+    stack_corner_2:
+    - 297.6
+    - 316.7
+    stack_corner_3:
+    - 190.9
+    - 371.6
+    stack_corner_4:
+    - 94.5
+    - 295.4
+    supply_corner_1:
+    - 420.1
+    - 239.5
+    supply_corner_2:
+    - 559.3
+    - 292.8
+    supply_corner_3:
+    - 466.4
+    - 364.9
+    supply_corner_4:
+    - 325.5
+    - 290.8
+    jaw_tips_home:
+    - 309.0
+    - 267.0
+wrist:
+  body: gripper
+  pos:
+  - -0.00851
+  - 0.01608
+  - -0.01904
+  xyaxes:
+  - 0.98958
+  - -0.07427
+  - 0.12338
+  - -0.01444
+  - 0.80124
+  - 0.59817
+  fovy: 59.34121311579336
+  f_px: 421.2668048527167
+  k1: 0.005791922950699955
+  k2: 0.0
+  rvec_in_gripper:
+  - 3.771238811176053
+  - -0.06298306435258051
+  - 0.28070120508852753
+  jaw_silhouette_iou:
+    home: 0.331
+    P1: 0.699
+    P3: 0.696
+  lens_to_fixed_tip_m: 0.08693184885089716
+  optical_axis_vs_jaw_deg: 37.6448745648336
+  method: jaw-silhouette fit on wrist_cam_frame + M4 P1/P3 wrist frames
+  rms_px: null
+  status: 'UNCALIBRATED: silhouette fits did not converge (jaw IoU 0.33-0.70); redo
+    after checkerboard intrinsics (notes/phase3.md)'

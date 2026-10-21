@@ -1,0 +1,12 @@
+NEW SPOT r = 23.0 cm, no riser, release pose with jaws <= 10 deg, collision-checked
+  carrying no3  : onto stacks up to 6 boxes; tilt by height [1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 6.0]
+  carrying no35 : onto stacks up to 6 boxes; tilt by height [1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 6.0]
+  carrying no10 : onto stacks up to 7 boxes; tilt by height [1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 5.0, 10.0]
+BACKDROP: sightlines past 3-8 box stacks cross the right edge 14-35 cm from the arm's corner, up to 13.2 cm high
+  backdrop (Phase 2 spec / sim): from 10 cm to the corner (38 cm), 20 cm tall -> covered
+
+Release tilt for the robot's LAST placement (onto a 7-box stack) vs spot radius
+  r=23 cm (yellow margin 5.0 cm): no3 10.7 deg no35 10.4 deg no10  9.6 deg
+  r=22 cm (yellow margin 4.0 cm): no3  9.7 deg no35  9.4 deg no10  8.6 deg
+  r=21 cm (yellow margin 3.0 cm): no3  8.9 deg no35  8.6 deg no10  7.7 deg
+  r=20 cm (yellow margin 2.0 cm): no3  8.4 deg no35  8.0 deg no10  7.0 deg

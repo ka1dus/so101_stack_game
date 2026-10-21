@@ -1,0 +1,7 @@
+Stacking spot candidates on the arm->spot line (current spot r=25.5 cm). Stack must stay inside the yellow area.
+Feasible = jaw tilt <= tol at the place pose AND at the approach start, for stack offsets of +/-2 cm along the line.
+
+spot r=25.5 cm (yellow margin  7.2 cm):  tol5/clr5: 0 tol5/clr3: 1 tol5/clr2: 2 tol10/clr5: 2 tol10/clr3: 3 tol10/clr2: 3
+spot r=23.0 cm (yellow margin  5.0 cm):  tol5/clr5: 1 tol5/clr3: 3 tol5/clr2: 3 tol10/clr5: 3 tol10/clr3: 4 tol10/clr2: 4
+spot r=21.0 cm (yellow margin  3.0 cm):  tol5/clr5: 2 tol5/clr3: 3 tol5/clr2: 4 tol10/clr5: 3 tol10/clr3: 4 tol10/clr2: 5
+spot r=19.0 cm (yellow margin  1.1 cm):  tol5/clr5: 3 tol5/clr3: 4 tol5/clr2: 4 tol10/clr5: 4 tol10/clr3: 5 tol10/clr2: 6
