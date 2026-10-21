@@ -71,6 +71,8 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--run", default=None)
     ap.add_argument("--max-attempts", type=int, default=None)
+    ap.add_argument("--hard-p", type=float, default=0.6, help="share of hard states (Phase 5 section 10)")
+    ap.add_argument("--tall-p", type=float, default=0.6, help="share of stack heights 4-7 (Phase 5 section 10)")
     a = ap.parse_args()
     out = ROOT / "data/raw" / (a.run or f"{a.mode}_seed{a.seed}"); out.mkdir(parents=True, exist_ok=True)
     sim = GT.Sim(); m, d = sim.m, sim.d; rng = np.random.default_rng(a.seed)
@@ -78,11 +80,14 @@ def main():
     renderer = mujoco.Renderer(m, H, W)
     arm_q = list(sim.qadr) + [sim.gadr]; act_ids = [sim.act[j] for j in JOINT_NAMES]
     written, attempts, fails = len(list(out.glob("ep_*"))), 0, {}
+    if written:                                   # resuming: don't replay the same random draws
+        rng = np.random.default_rng([a.seed, written]); ex.rng = rng
     t0 = time.time()
     while written < a.n and (a.max_attempts is None or attempts < a.max_attempts):
         attempts += 1
         requested = str(rng.choice(G.TYPE_ORDER)) if a.mode == "vla" else None
-        st, _ = G.sample_state(rng, m, d, mode=a.mode, requested=requested, home=E.home_fn(sim))
+        st, _ = G.sample_state(rng, m, d, mode=a.mode, requested=requested, home=E.home_fn(sim),
+                               hard_p=a.hard_p, tall_p=a.tall_p)
         rparams = rand.apply(rng)
         ep = out / f"ep_{written:06d}"; tmp = out / f".tmp_{written:06d}"
         shutil.rmtree(tmp, ignore_errors=True); tmp.mkdir()

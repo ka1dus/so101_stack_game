@@ -35,16 +35,12 @@ Debug prints in `run()` (`self.dbg`, ik_place line) can be removed once stable.
   `scripts/export_lerobot.py` (WSL; untested against the WSL version yet).
 - `notes/phase5.md` §5–7 written.
 
-## Pilot done → WAITING AT THE PHASE 5 CHECKPOINT (user OK needed before large generation)
-- Pilot `data/raw/act_pilot` 20/20; fixes: clipped home jitter, roll-consistent jaw side. VLA smoke 6/6.
-- Export checked locally (Mac LeRobot 0.6.2). The report is complete through §10 (`notes/phase5.md`), and the
-  Decisions log is updated. Not committed since db49dbd.
-
-## After the OK
-1. Apply the §10 proposal (hard share 0.6, heights 1–3 : 4–7 = 40 : 60; needs a `sample_state` weight option),
-   run 4 parallel `generate.py` processes (ACT 2,000 + VLA 1,000), inspect each run.
-2. Copy `data/raw/` to WSL; run `export_lerobot.py` there (check the WSL LeRobot version first); push with
-   `hf auth login` → `Maxctl352/so101_stack_sim_act` and `_vla`.
+## Large generation MOVED TO THE WINDOWS MACHINE (user decision 2026-10-21: the Mac's ~5 h was too long)
+- Mac run stopped; 326 ACT episodes kept in `data/raw/act_main_w0..3` (half-finished ones deleted).
+- Remaining 1,674 ACT + 1,000 VLA: native Windows, `scripts/run_generation.py` (cross-platform launcher, tested
+  on the Mac). Full user instructions: `notes/phase5_gpu_generation.md` (install, check, run, pause/resume,
+  copy the Mac episodes, WSL export + push).
+- Export time for the full set is not measured.
 
 ## Commands
     MUJOCO_GL=cgl ~/.venvs/so101_stack_sim/bin/python scripts/expert.py --n 20 --seed 0   # ~2.7 min

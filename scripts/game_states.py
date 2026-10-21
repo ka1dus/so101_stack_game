@@ -289,10 +289,16 @@ def stands(model, data, state, settle=0.4, t=0.6, tol=0.001, tilt_tol=2.0):
     return True
 
 
-def sample_state(rng, model, data, n=None, mode="act", requested=None, hard_p=0.5, home=None, max_tries=200):
-    """Returns (State, settled qpos) with the stack standing and a pickable box chosen."""
+def sample_state(rng, model, data, n=None, mode="act", requested=None, hard_p=0.5, home=None, max_tries=200, tall_p=None):
+    """Returns (State, settled qpos) with the stack standing and a pickable box chosen.
+    tall_p: share of states with height 4..MAX_STACK (uniform within each group); None = uniform over all heights."""
     for _ in range(max_tries):
-        nn = int(rng.integers(MIN_STACK, MAX_STACK + 1)) if n is None else n
+        if n is not None:
+            nn = n
+        elif tall_p is None:
+            nn = int(rng.integers(MIN_STACK, MAX_STACK + 1))
+        else:
+            nn = int(rng.integers(4, MAX_STACK + 1)) if rng.random() < tall_p else int(rng.integers(MIN_STACK, 4))
         hard = rng.random() < hard_p
         progression = rng.random() < 0.6
         if progression:                                   # supply = what's left of the real starting grid
