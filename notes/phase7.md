@@ -1,7 +1,7 @@
 # Phase 7: Classical perception (plan, in progress)
 
 Status 2026-10-23: D1–D3 approved. Sim test set built (§6); camera refit and supply-slot check work in sim (§7).
-`collapse_check()` (§8) and `drop_check()` (§9) built and scored in sim, 0 false calls each. Waiting on the user's recording session (§4).
+`collapse_check()` (§8), `drop_check()` (§9) and `hand_in_workspace()` (§10) built and scored in sim. Waiting on the user's recording session (§4).
 
 ## 1. What the inputs allow
 - **`inputs/videos/stack_collapse.mp4`** (301 frames) and **`human_turn.mp4`** (451 frames): 640×480, 30 fps, recorded
@@ -225,7 +225,6 @@ Nothing that moved more than 22 mm went undetected.
 **Not built yet:**
 - **Stack height measured from the image:** the type of each level comes from game history (D1), so the expected height
   is exact. Only the top position is estimated from the image.
-- `hand_in_workspace()`.
 
 **For the real game:**
 - **Release frame:** the release-slide cue needs the frame at release. For a human turn that's the moment the hand
@@ -278,3 +277,55 @@ Nothing that moved more than 22 mm went undetected.
 - Check the real gripper's hold readings per type; the sim says No.3 ≈ 21, No.35 ≈ 18, No.10 ≈ 13.4 units. Cardboard
   flexes, so the real reading may creep while carrying. The 3-unit slip margin needs checking on the real arm in Phase 8.
 - Decided with the user (2026-10-23): a box slipping out right over the stack is judged by the collapse check, not called a drop.
+
+## 10. Hand check (`perception/hand.py`, decision D3), 2026-10-23
+**Test set:**
+- **Source:** `scripts/hand_testset.py`, 120 episodes of `front` video at 30 Hz with the Phase 5 randomization; 35 of
+  them add a ±1.2 % per-frame brightness flicker.
+- **The hand stand-in:** added at run time (MjSpec; `sim/scene.xml` is untouched). It's a forearm, palm and fingers on
+  a motion-driven body with no collisions, with random skin tones (6, light to dark) and sleeve colours.
+- **Episodes:**
+  - robot turn: 50, the expert does a full pick-and-place; in 25 of them a hand reaches in meanwhile;
+  - human turn: 52, the arm at home while a hand reaches to the stack or the supply and back;
+  - near miss: 18, the hand stays 4–12 cm outside a table edge.
+- **Hand motion:** 0.25–0.7 m/s, held still for 0.3–2 s.
+- **Truth:** at least 150 hand pixels inside the workspace image region (from segmentation).
+- **Camera:** the episode's true camera here. In the game it's the per-game refit (1.3 px median).
+
+**Method:**
+- **Workspace:** the table top (+2 cm) up to 30 cm, projected through the camera.
+- **Mask:** the twin's arm at the current joint readings, dilated 8 px (D3), plus a 7 cm zone around the grip point
+  (the carried box, and supply boxes the closing jaws nudge).
+- **Foreground:** changed versus a background frame. Shadow-like changes are ignored (same colour balance, chroma
+  ≤ 0.05).
+- **A hand is called** when a foreground blob of > 400 px inside the workspace is also moving (versus 2 frames back,
+  counted only where both frames were unmasked), for 2 frames in a row. The blob must also either:
+  - reach out across one of the two human-side table edges (a hand comes with a forearm), or
+  - be lighter than the background somewhere (the arm's shadow is darker everywhere).
+- **Latch:** the call is held while foreground stays where the hand was, and released when that region is back to the
+  background, or after 4 s with no motion.
+- **Background upkeep:** frozen while a hand is suspected. Otherwise, changed-but-still pixels are taken in after 1 s (a
+  placed box, a settled stack).
+
+**Results** (`scripts/perception_eval.py --check hand`, `notes/phase7_hand_sim.txt`):
+- **Detection:** **95 of 95 reaches** into the workspace caught, median 0.03 s after the hand entered (max 0.57 s).
+- **Coverage:** 98 % of hand-in-workspace frames flagged (median per reach; lowest 77 %).
+- **False triggers:** in **2 of 120 episodes**, none in human turns or near misses. Both are robot turns where a hand had
+  just reached in: the call lingers about 3 s after the hand has left. That keeps the robot paused longer, which is the
+  safe side.
+- **How it got here:**
+
+  | version | reaches caught | episodes with false triggers |
+  |---|---|---|
+  | first version | 95/95 | 62/120 (the gripper leaving a placed box looked like motion; hand "ghosts" in the background) |
+  | after those fixes | 95/95 | 15/120 (the moving arm's hard shadow in sim) |
+  | entry rule only | 87/95 | 3/120 |
+  | entry rule or "not shadow-like" (final) | 95/95 | 2/120 |
+
+**Open:**
+- Real hands, sleeves and room light; the sim's hard shadows are harsher than the real diffuse light.
+- Tune the arm-mask margin on the recorded clips (D3).
+- **Speed: 91 ms per frame on the Mac** (median; p95 106 ms) for the twin's arm render plus the image steps. That is about
+  3× over the 33 ms budget at 30 Hz. Running at 10 Hz would still pause within about 0.2 s, but it should be sped up
+  before Phase 9: process at half resolution, crop to the workspace's bounding box, and do fewer full-image float
+  operations in the shadow test.

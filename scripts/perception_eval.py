@@ -106,12 +106,12 @@ def main():
     ap.add_argument("--check", default="supply"); ap.add_argument("--out", default=None)
     a = ap.parse_args()
     dirs = sorted(p for p in Path(a.data).iterdir() if (p / "truth.json").exists() or (p / "meta.json").exists())
-    REFINE = not a.no_refine and a.check != "drop"
+    REFINE = not a.no_refine and a.check not in ("drop", "hand")
     if REFINE:
         refine_all(dirs, a.workers)
     global a_data
     a_data = a.data
-    out = {"supply": eval_supply, "collapse": lambda d: eval_collapse(d, a.workers), "drop": eval_drop}[a.check](dirs)
+    out = {"supply": eval_supply, "collapse": lambda d: eval_collapse(d, a.workers), "drop": eval_drop, "hand": lambda d: eval_hand(d, a.workers)}[a.check](dirs)
     print(out)
     if a.out:
         Path(a.out).write_text(out + "\n")
@@ -204,6 +204,61 @@ def eval_drop(dirs):
               f"called before the 3-tick separation label)") if len(lat) else "",
              "by injection (kind, truth, predicted): " + ", ".join(f"{k}: {v}" for k, v in sorted(by.items()))]
     lines += [f"  {m}" for m in mist]
+    return "\n".join(lines)
+
+
+
+def _hand_one(p):
+    from perception.camera import from_mujoco
+    from perception.drop import Kinematics
+    from perception.hand import HandMonitor
+    from perception.twin import Twin
+    global _TW, _KIN
+    if "_TW" not in globals():
+        _TW, _KIN = Twin(), Kinematics()
+    A = np.load(p / "trace.npy"); mt = json.loads((p / "meta.json").read_text())
+    cam = from_mujoco(mt["camera"]["pos"], mt["camera"]["quat"])
+    mon = HandMonitor(cam, _TW, _KIN); pred = []
+    for f, row in zip(read_video(p / "front.mp4"), A):
+        pred.append(mon.tick(f, row[:6]))
+    return p.name, mt, np.array(pred), A[:, 6] >= mt["hand_px_min"]
+
+
+def eval_hand(dirs, workers=8):
+    """hand_in_workspace() per frame and per reach: entries detected and how fast, false triggers without a hand."""
+    import multiprocessing as mp
+    with mp.get_context("spawn").Pool(workers) as pool:
+        res = pool.map(_hand_one, dirs)
+    reach = Counter(); delays = []; fp_eps = []; frames = Counter(); by_kind = Counter(); held = []
+    for name, mt, pred, truth in res:
+        frames[(bool(truth.any()), "pred")] += 0
+        for y, p_ in zip(truth, pred):
+            frames[(bool(y), bool(p_))] += 1
+        if truth.any():
+            k0 = int(np.argmax(truth)); hit = np.nonzero(pred & truth)[0]
+            ok = len(hit) > 0; reach[ok] += 1; by_kind[(mt["kind"], "reach", ok)] += 1
+            if ok:
+                delays.append((hit[0] - k0) / 30)
+            held.append(pred[truth].mean())
+        stray = pred & ~truth
+        # a call outside any truth frame and more than 0.5 s away from one = a false trigger
+        far = stray.copy()
+        if truth.any():
+            idx = np.nonzero(truth)[0]
+            near = np.zeros_like(truth); near[max(0, idx[0] - 15):idx[-1] + 16] = True; far &= ~near
+        if far.any():
+            fp_eps.append((name, mt["kind"], int(far.sum())))
+        by_kind[(mt["kind"], "episodes")] += 1
+    d = np.array(delays)
+    lines = [f"episodes {len(res)}: " + ", ".join(f"{k[0]} {v}" for k, v in sorted(by_kind.items()) if k[1] == "episodes"),
+             f"reaches into the workspace detected {reach[True]}/{reach[True] + reach[False]}" +
+             (f"; delay after the hand entered: median {np.median(d):.2f} s, max {d.max():.2f} s" if len(d) else ""),
+             f"share of hand-in-workspace frames flagged: median {np.median(held):.2f}, min {min(held):.2f}" if held else "",
+             f"episodes with a false trigger (flagged > 0.5 s away from any hand frame): {len(fp_eps)}/{len(res)}",
+             f"frames: hand & flagged {frames[(True, True)]}, hand & not flagged {frames[(True, False)]}, "
+             f"no hand & flagged {frames[(False, True)]}, no hand & not flagged {frames[(False, False)]}"]
+    lines += [f"  false trigger: {e}" for e in fp_eps]
+    lines += [f"  missed reach: {name} {mt['kind']} {mt['hand']}" for name, mt, pred, truth in res if truth.any() and not (pred & truth).any()]
     return "\n".join(lines)
 
 

@@ -15,6 +15,7 @@ LAY = yaml.safe_load((ROOT / "sim/assets/layout.yaml").read_text())["stack_area"
 SPOT = np.array(LAY["stacking_spot"], float)
 AREA = np.array(LAY["corners"], float)
 DIFF_THR = 30          # max channel difference (0-255) counted as a change
+SHADE_CHROMA = 0.03    # colour-balance change still counted as a shadow (stack/collapse checks)
 STACK_TOP_Z = 0.16     # m; above 8 boxes (max 8 x 17 mm = 13.6 cm)
 
 
@@ -51,7 +52,7 @@ def stack_region(cam: Camera, pad=0.04, arm_mask=None):
     return roi
 
 
-def change(a, b, thr=DIFF_THR, shadows=False):
+def change(a, b, thr=DIFF_THR, shadows=False, chroma=None):
     """Pixels that differ by > thr in some channel. shadows=True: drop pure darkening/brightening that keeps the
     colour balance (a shadow cast or removed), since a moved box changes the colour as well."""
     d = cv2.absdiff(a, b).max(axis=2) > thr
@@ -59,7 +60,7 @@ def change(a, b, thr=DIFF_THR, shadows=False):
         fa, fb = a.astype(np.float32) + 8, b.astype(np.float32) + 8
         ca, cb = fa / fa.sum(2, keepdims=True), fb / fb.sum(2, keepdims=True)
         ratio = fa.sum(2) / fb.sum(2)
-        shade = (np.abs(ca - cb).max(2) < 0.03) & (((ratio > 0.3) & (ratio < 1.0)) | ((ratio > 1.0) & (ratio < 3.3)))
+        shade = (np.abs(ca - cb).max(2) < (SHADE_CHROMA if chroma is None else chroma)) & (((ratio > 0.3) & (ratio < 1.0)) | ((ratio > 1.0) & (ratio < 3.3)))
         d &= ~shade
     return cv2.morphologyEx(d.astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)).astype(bool)
 
