@@ -27,7 +27,7 @@ def main():
     ap.add_argument("--vla", type=int, required=True, help="total VLA episodes over all workers")
     ap.add_argument("--prefix", required=True, help="run-name prefix (keep it different per machine)")
     ap.add_argument("--seed-base", type=int, required=True, help="seeds: ACT base+k, VLA base+500+k")
-    a = ap.parse_args()
+    a, extra = ap.parse_known_args()                  # unknown options are passed on to generate.py
     env = dict(os.environ)
     if sys.platform == "darwin":
         env.setdefault("MUJOCO_GL", "cgl")
@@ -35,8 +35,8 @@ def main():
     gen = [sys.executable, str(ROOT / "scripts/generate.py")]
     procs = []
     for k, (na, nv) in enumerate(zip(shares(a.act, a.workers), shares(a.vla, a.workers))):
-        cmds = [gen + ["--n", str(na), "--mode", "act", "--seed", str(a.seed_base + k), "--run", f"act_{a.prefix}_w{k}"],
-                gen + ["--n", str(nv), "--mode", "vla", "--seed", str(a.seed_base + 500 + k), "--run", f"vla_{a.prefix}_w{k}"]]
+        cmds = [gen + ["--n", str(na), "--mode", "act", "--seed", str(a.seed_base + k), "--run", f"act_{a.prefix}_w{k}"] + extra,
+                gen + ["--n", str(nv), "--mode", "vla", "--seed", str(a.seed_base + 500 + k), "--run", f"vla_{a.prefix}_w{k}"] + extra]
         log = open(logs / f"{a.prefix}_w{k}.log", "a")
         # one shell-free chain per worker: a small Python runner executes the two commands in order
         runner = "import subprocess,sys,json; [subprocess.run(c, check=True) for c in json.loads(sys.argv[1])]"

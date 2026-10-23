@@ -44,6 +44,7 @@ JAW_T_FIXED, JAW_T_MOVING = 0.0062, 0.0068   # jaw tip thickness (notes/phase4_f
 MARGIN_MIN, MARGIN_MAX = 0.002, 0.008        # per-side gap between jaw and box at the pre-grasp opening
 HOVER = 0.03                   # stop this far above the box top (grip point) before the final descent
 HOVER_T, PRECLOSE_T = 0.3, 0.2
+RISE_MIN_R = 0.19              # carry: rise to the safe height no closer than this to the pan axis
 NOISE_OFF_ABOVE = 0.025        # DART noise fades out once the grip point is this close to the box top (tips ~15 mm above)
 GRIP_DEPTH = "deep"            # "v1": jaw tips 10 mm below the box top; "deep" (v2 default): tips planned ~2.5 mm above the mat
 FIXED_MARGIN_MAX = MARGIN_MAX  # cap on the fixed-jaw-side margin (the moving jaw pushes the box this far on closing)
@@ -68,6 +69,34 @@ class Expert:
             need = PROXIMAL_CLEAR if sim.m.body(sim.m.geom_bodyid[a]).name in ("shoulder", "upper_arm", "lower_arm") else BACKDROP_CLEAR
             out = min(out, min(mujoco.mj_geomDistance(sim.m, k, a, b, 0.05, None) for b in self.backdrop) - need)
         return out
+
+    def lowest_corner(self, q, b_in_g, Rbg, dim):
+        """World z of the held box's lowest corner with the arm at q (box pose in the gripper frame from the grasp)."""
+        sim = self.sim; k = sim.kin
+        k.qpos[sim.qadr] = q; mujoco.mj_kinematics(sim.m, k)
+        Rg = k.xmat[sim.gb].reshape(3, 3); xg = k.xpos[sim.gb]
+        L, W, H = dim["length"] / 2, dim["width"] / 2, dim["height"] / 2
+        return min((xg + Rg @ (b_in_g + Rbg @ np.array([a * L, b * W, c * H])))[2] for a in (-1, 1) for b in (-1, 1) for c in (-1, 1))
+
+    def path_clear(self, qa, qb, n=15):
+        """Every joint-interpolated pose from qa to qb keeps the backdrop clearances (backdrop_gap >= 0)."""
+        return all(self.backdrop_gap(qa + s * (qb - qa)) >= 0 for s in np.linspace(0, 1, n))
+
+    def safe_move(self, q_to, g, T):
+        """sim.move, but if the straight joint-space path brings the arm/camera too close to the backdrop, reorder it:
+        shoulder_pan first (turn away, then reach), or everything but the pan first. Found 2026-10-23: from home to boxes
+        near the arm base the upper arm swung back into the backdrop (12.5 mm away at home) before the base turned."""
+        sim = self.sim; q_from = sim.plan_q.copy()
+        if self.path_clear(q_from, q_to):
+            sim.move(q_to, g, T); return
+        for first in ("pan", "rest"):
+            q_mid = q_from.copy() if first == "pan" else q_to.copy()
+            q_mid[0] = q_to[0] if first == "pan" else q_from[0]
+            if self.path_clear(q_from, q_mid) and self.path_clear(q_mid, q_to):
+                self.reordered += 1
+                sim.move(q_mid, g, 0.6 * T); sim.move(q_to, g, 0.6 * T); return
+        self.unsafe_paths += 1
+        sim.move(q_to, g, T)
 
     # ---------------------------------------------------------------- helpers
     def seeds(self, target):
@@ -164,7 +193,7 @@ class Expert:
         tgt = c[:2] + off
         q_pre, _, _ = sim.ik(p_grip, np.r_[tgt, top_z + 0.05], xdir, self.seeds(np.r_[tgt, top_z + 0.05]), w_orient=10.0, signed=True)
         g_open = sim.gripper_sim(CONTACT_READING[box.type] + sum(margin) / GAP_PER_UNIT)
-        sim.move(q_pre, g_open, 1.0)
+        self.safe_move(q_pre, g_open, 1.0)
         q = self.straight(p_grip, tgt, top_z + 0.05, top_z + 0.002, xdir, q_pre, g_open)
         sim.move(q, sim.gripper_sim(0.0), 0.6); sim.wait(0.3)
         self.straight(p_grip, tgt, top_z + 0.002, top_z + rng.uniform(0.02, 0.03), xdir, q, sim.gripper_sim(0.0))
@@ -175,7 +204,7 @@ class Expert:
         """kind: "clean" (v2 grasp), "dart" (v2 + execution noise, clean labels), "retry" (recording starts after an
         unrecorded missed grasp), "v1" (the v1 expert: lopsided tight grasp, no hover/slow descent)."""
         sim, m, d, rng = self.sim, self.sim.m, self.sim.d, self.rng
-        self.worst_err = 0.0; v2 = kind != "v1"; dart = kind == "dart"
+        self.worst_err = 0.0; v2 = kind != "v1"; dart = kind == "dart"; self.reordered = 0; self.unsafe_paths = 0
         sim.noise_rng = np.random.default_rng(rng.integers(1 << 31)); sim._nx[:] = 0; sim._gain = 0.0; sim.set_noise(False)
         # home with jitter
         q0 = sim.home.copy(); q0[:5] += np.radians(rng.uniform(-3, 3, 5))
@@ -240,7 +269,7 @@ class Expert:
         q_pre, e2, _ = sim.ik(p_grip, np.r_[centre[:2], top_z + 0.05], xdir, [q_g] + self.seeds(np.r_[centre[:2], top_z + 0.05]),
                               w_orient=10.0, signed=True)
         sim.set_noise(dart)
-        sim.move(q_pre, g_open, 1.0)
+        self.safe_move(q_pre, g_open, 1.0)
         if v2:
             q = self.straight(p_grip, centre[:2], top_z + 0.05, top_z + HOVER, xdir, q_pre, g_open)
             sim.wait(HOVER_T)                               # hover: the wrist camera looks straight down at the box
@@ -307,16 +336,32 @@ class Expert:
             print(f"      ik_place: release err {e_rel:.1f} mm tilt {t_rel:.0f} | above err {e3:.1f} mm tilt {t3:.0f} | "
                   f"target r {np.linalg.norm(xy_t)*100:.1f} cm z {z_rel*100:.1f} cm")
             return dict(ok=False, reason="ik_place")
+        # a tilted release (wrist_flex limit on tall stacks) puts the held box's low end below its centre: raise the
+        # release until the LOWEST CORNER, not the centre, clears the top face by RELEASE_CLEARANCE (2026-10-23 fix:
+        # a No.3 at 10 deg tilt pressed ~3 mm into the top box and knocked 7-high stacks)
+        if v2:
+            top_face = top_c[2] + ht / 2; info["release_raise_mm"] = 0.0
+            for _ in range(3):
+                q_r2, _, _ = self.ik_pos_first(b_in_g, np.r_[xy_t, z_rel], xdir_p, [q_above] + self.seeds(np.r_[xy_t, z_rel]))
+                deficit = top_face + RELEASE_CLEARANCE - self.lowest_corner(q_r2, b_in_g, Rbg, dim)
+                if deficit < 0.0003:
+                    break
+                z_rel += deficit; info["release_raise_mm"] += round(deficit * 1000, 1)
+            tgt_above = np.r_[xy_t, z_rel + APPROACH_ABOVE]
+            q_above, e3, t3 = self.ik_pos_first(b_in_g, tgt_above, xdir_p, [q_above] + self.seeds(tgt_above))
         # carry: first rise to a safe height above both the pick and the stack, then over
         safe = max(tgt_above[2], d.xpos[bid][2]) + 0.02
-        q_up, _, _ = sim.ik(b_in_g, np.r_[d.xpos[bid][:2], safe], xdir, [q], w_orient=10.0, signed=True)
+        xy_up = d.xpos[bid][:2].copy(); r_up = np.linalg.norm(xy_up)
+        if r_up < RISE_MIN_R:                               # near the base: rise further out, or the folded arm's upper arm
+            xy_up *= RISE_MIN_R / r_up                      # swings back into the backdrop (2026-10-23 diagnosis)
+        q_up, _, _ = sim.ik(b_in_g, np.r_[xy_up, safe], xdir, [q] + self.seeds(np.r_[xy_up, safe]), w_orient=10.0, signed=True)
         sim.set_noise(dart)                                 # noise during the carry, away from boxes
-        sim.move(q_up, g_close, 0.6)
+        self.safe_move(q_up, g_close, 0.6)
         q_over, _, _ = sim.ik(b_in_g, np.r_[xy_t, safe], xdir_p, [q_above], w_orient=10.0, signed=True)
-        sim.move(q_over, g_close, 1.0)
+        self.safe_move(q_over, g_close, 1.0)
         sim.set_noise(False)                                # clean from here: approach, descent, release, retract
         sim.wait(0.3 if dart else 0.0)                      # let the noise fade out above the stack
-        sim.move(q_above, g_close, 0.6)
+        self.safe_move(q_above, g_close, 0.6)
         # straight down to the release height, slow near the top
         q = self.straight(b_in_g, xy_t, tgt_above[2], z_rel, xdir_p, q_above, g_close, step=0.003, speed_time=0.1, slow=0.25)
         sim.wait(0.2)
@@ -343,6 +388,7 @@ class Expert:
         ok = on_top and moved < 0.005 and max(tilts) < 5 and nb_tilt < 5
         ok = ok and not self.hit
         reason = "ok" if ok else "hit_backdrop" if self.hit else ("knocked_stack" if (moved >= 0.005 or max(tilts) >= 5) else "misplaced")
+        info.update(reordered_moves=self.reordered, unsafe_paths=self.unsafe_paths)
         return dict(ok=bool(ok), reason=reason, **info, stack_moved_mm=float(moved * 1000), new_box_tilt=float(nb_tilt),
                     worst_ik_err_mm=float(self.worst_err), moving_jaw_side=int(self.pick_side), release_tilt_deg=float(t_rel),
                     place_offset_mm=float(np.linalg.norm(nb[:2] - xy_t) * 1000), support_margin_mm=float(margin * 1000))
@@ -361,6 +407,9 @@ def main():
     ap.add_argument("--kind", default="clean", choices=("clean", "dart", "retry", "v1"))
     ap.add_argument("--v2-states", action="store_true", help="v2 state distribution (dense supplies) + strict rest check")
     ap.add_argument("--game-states", action="store_true", help="full-v2 states: game-rule supplies + fixed layout (SUPPLY_P_GAME)")
+    ap.add_argument("--height-min", type=int, default=None); ap.add_argument("--height-max", type=int, default=None)
+    ap.add_argument("--hard-p", type=float, default=None); ap.add_argument("--min-crooked-mm", type=float, default=0.0)
+    ap.add_argument("--want-types", default=None, help="comma list: only states where the rule picks one of these types")
     ap.add_argument("--grip-depth", default="deep", choices=("v1", "deep")); ap.add_argument("--fixed-margin-max", type=float, default=None)
     a = ap.parse_args()
     global GRIP_DEPTH, FIXED_MARGIN_MAX
@@ -373,7 +422,15 @@ def main():
         kw = dict(height_p=G.HEIGHT_P_V2, rest=2.0, hard_p=0.6) if (a.v2_states or a.game_states) else {}
         if a.game_states:
             kw["supply_p"] = G.SUPPLY_P_GAME
-        st, _ = G.sample_state(rng, sim.m, sim.d, home=home_fn(sim), **kw)
+        if a.height_min is not None:
+            kw["height_p"] = {h: 1.0 for h in range(a.height_min, (a.height_max or G.MAX_STACK) + 1)}
+        if a.hard_p is not None:
+            kw["hard_p"] = a.hard_p
+        for _ in range(3000):
+            st, _ = G.sample_state(rng, sim.m, sim.d, home=home_fn(sim), **kw)
+            off = max((np.linalg.norm(o) for o in st.meta.get("offsets_mm", [])), default=0.0)
+            if off >= a.min_crooked_mm and (not a.want_types or st.supply[st.pick].type in a.want_types.split(",")):
+                break
         r = ex.run(st, kind=a.kind); r.update(height=st.meta["stack_height"], pairing=st.meta["pairing"]); res.append(r)
         print(f"{i:3d} h={r['height']} {r['pairing']:14s} -> {r['reason']:16s} margin/side {r.get('grasp_margin_mm', '-')} mm," +
               (f" moved {r['stack_moved_mm']:.1f} mm, offset {r['place_offset_mm']:.1f} mm, margin {r['support_margin_mm']:.1f} mm,"

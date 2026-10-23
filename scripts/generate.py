@@ -76,6 +76,10 @@ def main():
     ap.add_argument("--data-version", choices=("v1", "v2"), default="v2",
                     help="v2 (notes/phase6_data_v2_plan.md): v2 expert grasp, episode-kind mix, dense-supply heights, strict rest check")
     ap.add_argument("--kinds", default="clean:0.45,dart:0.40,retry:0.15", help="v2 episode-kind mix")
+    ap.add_argument("--height-min", type=int, default=None, help="targeted (v3): stack heights height-min..7, uniform")
+    ap.add_argument("--want-types", default=None, help="targeted (v3): comma list; only states where the rule picks these")
+    ap.add_argument("--min-crooked-mm", type=float, default=0.0)
+    ap.add_argument("--crooked-share", type=float, default=1.0, help="share of episodes that must meet --min-crooked-mm")
     ap.add_argument("--states", choices=("v2", "game"), default="game",
                     help="game (full v2 run): template-layout games + rule-spaced supplies + some dense (SUPPLY_P_GAME); v2: pilot sampling")
     a = ap.parse_args()
@@ -94,9 +98,16 @@ def main():
         attempts += 1
         requested = str(rng.choice(G.TYPE_ORDER)) if a.mode == "vla" else None
         if a.data_version == "v2":
-            st, _ = G.sample_state(rng, m, d, mode=a.mode, requested=requested, home=E.home_fn(sim),
-                                   hard_p=a.hard_p, height_p=G.HEIGHT_P_V2, rest=2.0,
-                                   supply_p=G.SUPPLY_P_GAME if a.states == "game" else None)
+            hp = G.HEIGHT_P_V2 if a.height_min is None else {h: 1.0 for h in range(a.height_min, G.MAX_STACK + 1)}
+            need_crooked = rng.random() < a.crooked_share
+            for _ in range(3000):
+                st, _ = G.sample_state(rng, m, d, mode=a.mode, requested=requested, home=E.home_fn(sim),
+                                       hard_p=a.hard_p, height_p=hp, rest=2.0,
+                                       supply_p=G.SUPPLY_P_GAME if a.states == "game" else None)
+                off = max((np.linalg.norm(o) for o in st.meta.get("offsets_mm", [])), default=0.0)
+                if (not need_crooked or off >= a.min_crooked_mm) and \
+                        (not a.want_types or st.supply[st.pick].type in a.want_types.split(",")):
+                    break
             kind = str(rng.choice(kind_names, p=kind_p))
         else:
             st, _ = G.sample_state(rng, m, d, mode=a.mode, requested=requested, home=E.home_fn(sim),

@@ -178,6 +178,20 @@ def resting_drift(sim, st, secs=2.0):
     return max(float(np.linalg.norm(sim.d.xpos[i] - p)) for i, p in zip(ids, p0))
 
 
+def max_offset_mm(st):
+    return max((np.linalg.norm(o) for o in st.meta.get("offsets_mm", [])), default=0.0)
+
+
+def wanted(st, a):
+    """Targeted-evaluation filters (confirmation of the Section 1 criteria per box type / pairing)."""
+    pick = st.supply[st.pick].type; top = st.stack[-1].type
+    if a.want_type and pick != a.want_type:
+        return False
+    if a.want_pairing and f"{pick}_on_{top}" != a.want_pairing:
+        return False
+    return max_offset_mm(st) >= a.min_crooked_mm
+
+
 def bucket_offsets(st):
     off = max((np.linalg.norm(o) for o in st.meta.get("offsets_mm", [])), default=0.0)
     for b in OFFSET_BINS:
@@ -197,6 +211,12 @@ def main():
     ap.add_argument("--out", default=None)
     ap.add_argument("--n-action-steps", type=int, default=None, help="re-plan every K steps (default: the trained value, 100)")
     ap.add_argument("--temporal-ensemble", type=float, default=None, help="temporal ensembling coefficient (e.g. 0.01)")
+    ap.add_argument("--height-min", type=int, default=None, help="targeted: stack heights height-min..height-max (uniform)")
+    ap.add_argument("--height-max", type=int, default=None)
+    ap.add_argument("--hard-p", type=float, default=0.5, help="share of hard (crooked/precarious) stacks")
+    ap.add_argument("--min-crooked-mm", type=float, default=0.0, help="targeted: max per-level stack offset >= this")
+    ap.add_argument("--want-type", default=None, help="targeted: only states where the robot's rule picks this type")
+    ap.add_argument("--want-pairing", default=None, help="targeted: only states with this picked_on_top pairing")
     ap.add_argument("--states", choices=("v1", "game"), default="v1",
                     help="v1: the original sampler (the 200-state comparison set); game: game-rule supplies (fixed layout + rule gaps)")
     ap.add_argument("--resize", default=None, help="WxH policy input size (must match the training dataset, e.g. 320x240)")
@@ -207,13 +227,17 @@ def main():
     print(f"inference: n_action_steps={policy.config.n_action_steps}, temporal_ensemble_coeff={policy.config.temporal_ensemble_coeff}")
     sim = GT.Sim(); rng = np.random.default_rng(a.seed); jm = JointMapping.from_files()
     rand = Randomizer(sim.m); renderer = mujoco.Renderer(sim.m, H, W)
-    rows = []; t0 = time.time(); n_drift = 0
+    rows = []; t0 = time.time(); n_drift = 0; n_filtered = 0
+    height_p = None if a.height_min is None else {h: 1.0 for h in range(a.height_min, (a.height_max or G.MAX_STACK) + 1)}
     for i in range(a.n):
         requested = str(rng.choice(G.TYPE_ORDER)) if a.mode == "vla" else None
-        for _ in range(20):                            # skip states whose resting stack creeps (contact-model drift,
+        for _ in range(3000):                          # targeted filters, then skip states whose resting stack creeps
             st, _ = G.sample_state(rng, sim.m, sim.d, mode=a.mode, requested=requested, home=E.home_fn(sim),
-                                   supply_p=G.SUPPLY_P_EVAL_GAME if a.states == "game" else None)
-            if resting_drift(sim, st) < 0.0005:        # rare: ~1 in 40; not the policy's doing)
+                                   supply_p=G.SUPPLY_P_EVAL_GAME if a.states == "game" else None,
+                                   height_p=height_p, hard_p=a.hard_p)
+            if not wanted(st, a):
+                n_filtered += 1; continue
+            if resting_drift(sim, st) < 0.0005:        # rare: ~1 in 40; not the policy's doing
                 break
             n_drift += 1
         if a.randomize:
@@ -226,14 +250,15 @@ def main():
         if vw is not None:
             vw.close()
         v = judge.verdict(a.mode, requested)
-        row = dict(i=i, supply_mode=st.meta.get("supply_mode"), height=st.meta["stack_height"], pairing=st.meta["pairing"], expected_type=st.supply[st.pick].type,
+        row = dict(i=i, supply_mode=st.meta.get("supply_mode"), height=st.meta["stack_height"], max_offset_mm=round(max_offset_mm(st), 1), pairing=st.meta["pairing"], expected_type=st.supply[st.pick].type,
                    requested=requested, crooked=bucket_offsets(st), hard=st.meta.get("hard"), duration_s=round(dur, 2), **v)
         rows.append(row)
         print(f"{i:3d} h={row['height']} {row['pairing']:14s} {row['crooked']:7s} -> {v['reason']:16s}"
               f"{' WRONG_BOX' if v['wrong_box'] else ''}{' HIT_BACKDROP' if v['hit_backdrop'] else ''} ({dur:.1f} s) | {sum(r['ok'] for r in rows)}/{len(rows)} ok,"
               f" {(time.time() - t0) / len(rows):.0f} s/ep", flush=True)
     (out / "episodes.json").write_text(json.dumps(rows, indent=1))
-    summary = summarize(rows, a) + f"eval states skipped for resting-stack drift > 0.5 mm in 2 s: {n_drift}\n"
+    summary = summarize(rows, a) + f"eval states skipped for resting-stack drift > 0.5 mm in 2 s: {n_drift}\n" \
+        + f"states rejected by targeted filters: {n_filtered}\n"
     (out / "summary.txt").write_text(summary); print(summary)
 
 

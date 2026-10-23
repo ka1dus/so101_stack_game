@@ -202,3 +202,88 @@ supply layout (pick-order margin) and add it as a supply mode.
   and game-state generation tested on botmind.
 - Generation speed ~33 episodes/min (16 workers) → ~90 min. Rough ETA: export ~04:30, training to ~09:30–10:30
   (half-resolution step time on botmind not yet measured), evaluation ~20 min after.
+
+## 16. Full v2 results (2026-10-23, botmind; ACT v2, 3,000 episodes, 320×240, 300k steps, temporal ensembling 0.01)
+Timeline: generation 02:06–03:31, export + merge 03:31–03:59 (1,260,293 frames, verified), training 03:59–09:43
+(0.069 s/step), evaluation 09:43–10:05.
+
+| test set (200 states each) | v1 policy | **v2 policy** |
+|---|---|---|
+| v1 set (seeds 1001–1004; dense random supplies) | 98/200 = 49.0 % | **144/200 = 72.0 %** |
+| game-rule set (seeds 3001–3004; template-layout games + rule-spaced) | — | **186/200 = 93.0 %** |
+
+Section 1 sim criteria on the **game-rule set** (95 % Wilson intervals):
+| criterion | no3 | no35 | no10 |
+|---|---|---|---|
+| height 0–3 ≥ 90 % | 29/29 = 100 % (88–100) | 46/49 = 94 % (83–98) | 18/20 = 90 % (70–97) |
+| crooked 4+ (≥ 10 mm) ≥ 70 % | 7/7 (65–100) | 5/6 = 83 % (44–97) | 3/3 (44–100) |
+| large onto small ≥ 70 % | 12/12 = 100 % (76–100) | | |
+All point estimates meet the criteria, but the crooked-4+ and large-on-small buckets are too small (3–12 episodes)
+to establish them, and no10 at height 0–3 sits exactly at 90 %. Game-set failures: missed grasp 6, timeout holding 3,
+knocked 3, misplaced 2; wrong box 36/200 (still placed); no backdrop touches.
+On the v1 set (dense supplies, which the template layout avoids) v2 still misses the criteria: height 0–3 73 %,
+large-on-small 8/18; 45 missed grasps.
+Next: a confirmation evaluation with enough episodes in the small buckets (more game-rule states, plus targeted
+crooked-tall and large-on-small states).
+
+## 17. Confirmation evaluation (2026-10-23, botmind; ACT v2 300k, 320×240, temporal ensembling)
+1,060 episodes pooled (`notes/phase6_confirmation.md`; runs `data\eval\confirm_*` + the first game set on botmind):
+600 more game-rule states (seeds 3005–3016), targeted crooked (≥ 10 mm) height-4–7 states per picked type
+(60 each, hard stacks, seeds 4001–4006), targeted large-on-small (80, seeds 5001–5002), plus the 200-state game set.
+| criterion | no3 | no35 | no10 |
+|---|---|---|---|
+| height 0–3 ≥ 90 % | 155/159 = 97.5 % (94–99) **confirmed** | 196/206 = 95.1 % (91–97) **confirmed** | 92/94 = 97.9 % (93–99) **confirmed** |
+| crooked height 4+ ≥ 70 % | 71/101 = 70.3 % (61–78) met, not confirmed | 74/103 = 71.8 % (62–80) met, not confirmed | 62/69 = 89.9 % (81–95) **confirmed** |
+| large onto small ≥ 70 % | 128/152 = 84.2 % (78–89) **confirmed** | | |
+- Weak spot: large/medium boxes onto **tall** crooked stacks (targeted runs: no3 at height 7 8/16, height 6 4/7;
+  no35 height 7 4/9). Failures there are mostly knocks on approach/release, not missed grasps. Plausible causes:
+  the release tilt at heights 6–7 (wrist_flex limit), and v2's data weighting away from tall stacks.
+- Overall 937/1060; failures: missed grasp 50, misplaced 25, knocked on release 17, drop 13, timeout holding 10,
+  knocked on approach 8. Wrong box 178 (17 %, still placed). **Backdrop touches 3/1060** (safety flag to watch).
+- Operational: 20 parallel evaluations exceeded 16 GB GPU memory at startup (6 crashed with CUDA OOM); restarted
+  staggered. Keep ≤ 14 parallel or stagger starts.
+
+## 18. Targeted round, step 1: expert diagnosis on tall crooked states (2026-10-23)
+`expert.py --kind clean --game-states --height-min 5 --hard-p 1 --min-crooked-mm 10 --want-types <t>`, 60 per type (botmind):
+| expert picks | overall | h5 | h6 | h7 | failures |
+|---|---|---|---|---|---|
+| no3 | 52/60 = 87 % | 29/31 | 14/14 | 9/15 = 60 % | knocked_stack 6, hit_backdrop 2 |
+| no35 | 48/60 = 80 % | 27/28 | 10/16 | 11/16 = 69 % | missed_grasp 9, knocked 1, hit_backdrop 2 |
+The policy's tall-stack weakness (h7 ≈ 50 %) sits close to the **expert's own ceiling** there, so more data from the
+same expert has limited upside. Proposed: fix the expert at heights 6–7 first (no3 tilted-release knocks; no35 missed
+grasps, cause not yet known), then the targeted data + fine-tune round.
+
+## 19. Expert fixes for tall stacks (2026-10-23) and the targeted v3 round
+Diagnosis (`tall_diag` traces of the failing targeted seeds):
+1. **No.35 "missed grasps" were backdrop collisions**: boxes near the arm base (r ≈ 14–15 cm, late-game template slots).
+   From home, the joint-space move swung the upper arm back into the backdrop (12.5 mm away at home) before the base
+   turned, and the blocked arm never reached the box. After fixing the approach, the same collision moved to the carry:
+   rising vertically above a near-base box to the safe height over a tall stack folds the arm into the backdrop.
+   (A real collision risk on the real arm too, not only a sim score issue.)
+2. **No.3 knocks at height 7**: the release is tilted 9–10° (wrist_flex limit), so a 70 mm box's low end sat ~6 mm below
+   its centre; with the 3 mm clearance set for the centre, the corner pressed into the top box.
+3. One case: a precarious stack tipping on its own (not the arm).
+Fixes in `expert.py`: `safe_move()` checks every joint-space move against the backdrop (`path_clear`, 15 samples) and
+reorders it (pan first, or the rest first) when needed; the carry rises no closer than `RISE_MIN_R` = 19 cm to the pan
+axis; the release height is raised until the held box's **lowest corner** (`lowest_corner()`) clears the top face by
+3 mm.
+Expert on the same targeted states (120 episodes): no3 52 → **56/60**, no35 48 → **60/60**; height 7: no3 9/15 → 12/15,
+no35 11/16 → 16/16; no backdrop touches. Regression on normal game states: clean 59/60, DART 57/60, retry as before.
+v3 round (`scripts/b4_v3.ps1`, started 12:35 on botmind): 1,000 targeted episodes (heights 5–7, hard stacks, picks
+no3/no35, 70 % crooked ≥ 10 mm) → merged with the 3,000 v2 episodes → fine-tune v2 300k for 60k steps (LeRobot
+recomputes the normalisation stats from the merged data, `lerobot_train.py:641-667`) → re-evaluation on the same
+targeted seeds + game sets.
+
+## 20. v3 results (2026-10-23; v2 300k + 60k fine-tune on 4,000 episodes incl. 1,000 targeted, fixed expert)
+Re-evaluation on the same seeds (760 episodes; `notes/phase6_confirmation_v3.md`):
+| criterion | v2 | **v3** | 95 % interval | confirmed |
+|---|---|---|---|---|
+| height 0–3 no3 / no35 / no10 | 97.5 / 95.1 / 97.9 % | **97.1 / 100 / 98.4 %** | 92–99 / 97–100 / 91–100 | yes / yes / yes |
+| crooked 4+ no3 | 70.3 % | **74.5 %** | 65–82 | **no** (met) |
+| crooked 4+ no35 | 71.8 % | **88.8 %** | 80–94 | yes |
+| crooked 4+ no10 | 89.9 % | **92.4 %** | 83–97 | yes |
+| large onto small | 84.2 % | **87.1 %** | 80–92 | yes |
+Game-rule 200-state set: 186 → **194/200 = 97 %**; backdrop touches 3 → **0**; overall 701/760.
+Remaining gap: no3 on crooked tall stacks (targeted runs 43/60; height 6–7: 14/23; failures spread over drop,
+knocked on release, missed grasp, knocked on approach). The fixed expert gets 93 % on these states, so this is a
+learning gap, not an expert ceiling.
