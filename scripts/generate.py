@@ -72,7 +72,12 @@ def main():
     ap.add_argument("--run", default=None)
     ap.add_argument("--max-attempts", type=int, default=None)
     ap.add_argument("--hard-p", type=float, default=0.6, help="share of hard states (Phase 5 section 10)")
-    ap.add_argument("--tall-p", type=float, default=0.6, help="share of stack heights 4-7 (Phase 5 section 10)")
+    ap.add_argument("--tall-p", type=float, default=0.6, help="share of stack heights 4-7 (data v1 only)")
+    ap.add_argument("--data-version", choices=("v1", "v2"), default="v2",
+                    help="v2 (notes/phase6_data_v2_plan.md): v2 expert grasp, episode-kind mix, dense-supply heights, strict rest check")
+    ap.add_argument("--kinds", default="clean:0.45,dart:0.40,retry:0.15", help="v2 episode-kind mix")
+    ap.add_argument("--states", choices=("v2", "game"), default="game",
+                    help="game (full v2 run): template-layout games + rule-spaced supplies + some dense (SUPPLY_P_GAME); v2: pilot sampling")
     a = ap.parse_args()
     out = ROOT / "data/raw" / (a.run or f"{a.mode}_seed{a.seed}"); out.mkdir(parents=True, exist_ok=True)
     sim = GT.Sim(); m, d = sim.m, sim.d; rng = np.random.default_rng(a.seed)
@@ -82,12 +87,21 @@ def main():
     written, attempts, fails = len(list(out.glob("ep_*"))), 0, {}
     if written:                                   # resuming: don't replay the same random draws
         rng = np.random.default_rng([a.seed, written]); ex.rng = rng
-    t0 = time.time()
+    t0 = time.time(); start = written
+    kind_names = [k.split(":")[0] for k in a.kinds.split(",")]
+    kind_p = np.array([float(k.split(":")[1]) for k in a.kinds.split(",")]); kind_p /= kind_p.sum()
     while written < a.n and (a.max_attempts is None or attempts < a.max_attempts):
         attempts += 1
         requested = str(rng.choice(G.TYPE_ORDER)) if a.mode == "vla" else None
-        st, _ = G.sample_state(rng, m, d, mode=a.mode, requested=requested, home=E.home_fn(sim),
-                               hard_p=a.hard_p, tall_p=a.tall_p)
+        if a.data_version == "v2":
+            st, _ = G.sample_state(rng, m, d, mode=a.mode, requested=requested, home=E.home_fn(sim),
+                                   hard_p=a.hard_p, height_p=G.HEIGHT_P_V2, rest=2.0,
+                                   supply_p=G.SUPPLY_P_GAME if a.states == "game" else None)
+            kind = str(rng.choice(kind_names, p=kind_p))
+        else:
+            st, _ = G.sample_state(rng, m, d, mode=a.mode, requested=requested, home=E.home_fn(sim),
+                                   hard_p=a.hard_p, tall_p=a.tall_p)
+            kind = "v1"
         rparams = rand.apply(rng)
         ep = out / f"ep_{written:06d}"; tmp = out / f".tmp_{written:06d}"
         shutil.rmtree(tmp, ignore_errors=True); tmp.mkdir()
@@ -95,11 +109,11 @@ def main():
         states, ctrls = [], []
 
         def record():
-            states.append(d.qpos[arm_q].copy()); ctrls.append(d.ctrl[act_ids].copy())
+            states.append(d.qpos[arm_q].copy()); ctrls.append(sim.clean_ctrl())   # the plan (= d.ctrl unless DART noise is on)
             renderer.update_scene(d, "front"); vf.write(rand.post_front(renderer.render()))
             renderer.update_scene(d, "wrist"); vw.write(rand.post_wrist(renderer.render()))
 
-        r = ex.run(st, record=record)
+        r = ex.run(st, record=record, kind=kind, mode=a.mode, requested=requested)
         vf.close(); vw.close()
         if not r["ok"] or len(states) < 10:
             fails[r["reason"]] = fails.get(r["reason"], 0) + 1
@@ -113,11 +127,12 @@ def main():
                     task_vla=TASK_VLA.format(SIZE[pick.type]), mode=a.mode, requested=requested,
                     picked_type=pick.type, stack_types=[b.type for b in st.stack], fps=FPS, frames=len(state),
                     robot_type="so101_follower", joint_names=list(JOINT_NAMES), seed=a.seed, attempt=attempts,
-                    state_meta=st.meta, expert=r, randomization=rparams)
+                    state_meta=st.meta, expert=r, randomization=rparams, data_version=a.data_version, kind=kind, states=a.states,
+                    pairing_final=f"{pick.type}_on_{st.stack[-1].type}")   # retry starts may re-choose the box
         (tmp / "meta.json").write_text(json.dumps(jsonable(meta), indent=1))
         tmp.rename(ep); written += 1
-        print(f"ep {written:4d}/{a.n} h={st.meta['stack_height']} {st.meta['pairing']:14s} {len(state):4d} frames "
-              f"| attempts {attempts}, fails {fails} | {(time.time() - t0) / written:.1f} s/ep", flush=True)
+        print(f"ep {written:4d}/{a.n} h={st.meta['stack_height']} {meta['pairing_final']:14s} {kind:5s} {len(state):4d} frames "
+              f"| attempts {attempts}, fails {fails} | {(time.time() - t0) / (written - start):.1f} s/ep", flush=True)
     rand.reset(); renderer.close()
     print(f"done: {written} episodes in {out} ({attempts} attempts, failures {fails})")
 

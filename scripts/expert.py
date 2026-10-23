@@ -38,6 +38,15 @@ BACKDROP_CLEAR = 0.010         # wrist/gripper/camera to backdrop at the place p
 PROXIMAL_CLEAR = 0.003         # shoulder/upper/lower arm to backdrop (fixed by layout; real hover checks: no contact)
 ROLL_REF = np.radians(-12.0)   # sim wrist_roll at the place pose (backdrop-safe direction; pilot: -45..+20 deg)
 SLOW_ZONE = 0.02               # last 2 cm of the place descent at reduced speed
+# ---- data v2 grasp (notes/phase6_data_v2_plan.md section 1) ----
+GAP_PER_UNIT = 0.0010          # jaw opening per gripper unit near the box widths (measured in sim, 2026-10-22)
+JAW_T_FIXED, JAW_T_MOVING = 0.0062, 0.0068   # jaw tip thickness (notes/phase4_finger_geometry.txt)
+MARGIN_MIN, MARGIN_MAX = 0.002, 0.008        # per-side gap between jaw and box at the pre-grasp opening
+HOVER = 0.03                   # stop this far above the box top (grip point) before the final descent
+HOVER_T, PRECLOSE_T = 0.3, 0.2
+NOISE_OFF_ABOVE = 0.025        # DART noise fades out once the grip point is this close to the box top (tips ~15 mm above)
+GRIP_DEPTH = "deep"            # "v1": jaw tips 10 mm below the box top; "deep" (v2 default): tips planned ~2.5 mm above the mat
+FIXED_MARGIN_MAX = MARGIN_MAX  # cap on the fixed-jaw-side margin (the moving jaw pushes the box this far on closing)
 
 
 class Expert:
@@ -118,25 +127,89 @@ class Expert:
         return best[1], best[0]
 
     # ---------------------------------------------------------------- episode
-    def run(self, st, record=None):
+    def grasp_margin(self, box, others, side):
+        """Jaw margins (fixed side, moving side) for the v2 grasp from the free space beside the box (privileged).
+        Centred when FIXED_MARGIN_MAX = MARGIN_MAX; a smaller cap shortens how far the moving jaw pushes the box."""
+        c_mov = G.side_clear_width(box, others, side); c_fix = G.side_clear_width(box, others, -side)
+        m_fix = float(np.clip(c_fix - JAW_T_FIXED - 0.001, MARGIN_MIN, FIXED_MARGIN_MAX))
+        m_mov = float(np.clip(c_mov - JAW_T_MOVING - 0.001, MARGIN_MIN, MARGIN_MAX))
+        if FIXED_MARGIN_MAX >= MARGIN_MAX:                   # centred: equal margins, the smaller of the two
+            m_fix = m_mov = min(m_fix, m_mov)
+        return m_fix, m_mov
+
+    def grip_point(self, dim, m_fix):
+        depth = 0.010 if GRIP_DEPTH == "v1" else min(dim["height"] - 0.0025, 0.014)
+        return np.array([self.sim.xin + m_fix + dim["width"] / 2, 0.0, self.sim.ztip + depth])
+
+    def refresh(self, st):
+        """Re-read every box pose from the sim into the State (after an unrecorded missed grasp)."""
+        m, d = self.sim.m, self.sim.d
+        for b in st.stack + st.supply:
+            bid = m.body(b.body).id; b.xy = d.xpos[bid][:2].copy(); b.z = float(d.xpos[bid][2])
+            R = d.xmat[bid].reshape(3, 3); b.yaw = float(np.arctan2(R[1, 0], R[0, 0]))
+
+    def reading(self):
+        return float(self.sim.jm.sim_to_real(np.r_[np.zeros(5), self.sim.d.qpos[self.sim.gadr]])[5])
+
+    def miss(self, st, xdir, p_grip, box, dim, margin):
+        """Unrecorded missed grasp for a retry start: grasp with the target offset sideways (past the jaw margin) or
+        along the box (past its end), close, lift 2-3 cm. Returns True if the gripper ends up empty."""
+        sim, d, rng = self.sim, self.sim.d, self.rng
+        bid = sim.m.body(box.body).id; c = d.xpos[bid].copy(); top_z = c[2] + dim["height"] / 2
+        R = d.xmat[bid].reshape(3, 3); u, v = R[:2, 0] / np.linalg.norm(R[:2, 0]), R[:2, 1] / np.linalg.norm(R[:2, 1])
+        if rng.random() < 0.5:
+            off = v * rng.choice([-1, 1]) * (max(margin) + rng.uniform(0.005, 0.012))
+        else:
+            off = u * rng.choice([-1, 1]) * (dim["length"] / 2 + rng.uniform(0.005, 0.013))
+        tgt = c[:2] + off
+        q_pre, _, _ = sim.ik(p_grip, np.r_[tgt, top_z + 0.05], xdir, self.seeds(np.r_[tgt, top_z + 0.05]), w_orient=10.0, signed=True)
+        g_open = sim.gripper_sim(CONTACT_READING[box.type] + sum(margin) / GAP_PER_UNIT)
+        sim.move(q_pre, g_open, 1.0)
+        q = self.straight(p_grip, tgt, top_z + 0.05, top_z + 0.002, xdir, q_pre, g_open)
+        sim.move(q, sim.gripper_sim(0.0), 0.6); sim.wait(0.3)
+        self.straight(p_grip, tgt, top_z + 0.002, top_z + rng.uniform(0.02, 0.03), xdir, q, sim.gripper_sim(0.0))
+        sim.wait(0.2)
+        return self.reading() < CONTACT_READING[box.type] - 4
+
+    def run(self, st, record=None, kind="clean", mode="act", requested=None):
+        """kind: "clean" (v2 grasp), "dart" (v2 + execution noise, clean labels), "retry" (recording starts after an
+        unrecorded missed grasp), "v1" (the v1 expert: lopsided tight grasp, no hover/slow descent)."""
         sim, m, d, rng = self.sim, self.sim.m, self.sim.d, self.rng
-        self.worst_err = 0.0
+        self.worst_err = 0.0; v2 = kind != "v1"; dart = kind == "dart"
+        sim.noise_rng = np.random.default_rng(rng.integers(1 << 31)); sim._nx[:] = 0; sim._gain = 0.0; sim.set_noise(False)
         # home with jitter
         q0 = sim.home.copy(); q0[:5] += np.radians(rng.uniform(-3, 3, 5))
         q0[:5] = np.clip(q0[:5], sim.rng_lim[:, 0] + np.radians(0.5), sim.rng_lim[:, 1] - np.radians(0.5))   # home elbow sits ~0.5 deg from its limit
         d.qpos[sim.qadr] = q0[:5]; d.qpos[sim.gadr] = q0[5]
         for j, v in zip(JOINT_NAMES, q0):
             d.ctrl[sim.act[j]] = v
-        d.qvel[:] = 0; mujoco.mj_forward(m, d)
-        self.hit = False; bd = set(self.backdrop)
+        d.qvel[:] = 0; mujoco.mj_forward(m, d); sim.sync_plan()
+        self.hit = False; bd = set(self.backdrop); self.recording = kind != "retry"
         def tick():
             for c in d.contact[:d.ncon]:
                 if (c.geom1 in bd) != (c.geom2 in bd) and m.geom_bodyid[c.geom2 if c.geom1 in bd else c.geom1] != 0 \
                         and not m.body(m.geom_bodyid[c.geom2 if c.geom1 in bd else c.geom1]).name.startswith("box"):
                     self.hit = True
-            if record is not None:
+            if record is not None and self.recording:
                 record()
         sim.on_tick = tick
+        info = dict(kind=kind)
+        if kind == "retry":                                 # unrecorded missed grasp, then re-plan from the current scene
+            box = st.supply[st.pick]; dim = G.BOX[box.type]; others = [o for k, o in enumerate(st.supply) if k != st.pick]
+            side = (G.jaw_sides(box, others) or [1])[0]
+            Rb = d.xmat[m.body(box.body).id].reshape(3, 3); xd = side * Rb[:2, 1] / np.linalg.norm(Rb[:2, 1])
+            mf, mm = self.grasp_margin(box, others, side)
+            p_g = self.grip_point(dim, mf)
+            if not self.miss(st, xd, p_g, box, dim, (mf, mm)):
+                return dict(ok=False, reason="retry_not_missed")
+            if self.hit:
+                return dict(ok=False, reason="hit_backdrop")
+            self.refresh(st)
+            st.pick = G.choose_pick(st, mode, requested)
+            if st.pick < 0:
+                return dict(ok=False, reason="retry_no_pick")
+            info["retry_reading"] = self.reading()
+            self.recording = True
         box = st.supply[st.pick]; dim = G.BOX[box.type]; bid = m.body(box.body).id
         centre = d.xpos[bid].copy(); Rb = d.xmat[bid].reshape(3, 3); top_z = centre[2] + dim["height"] / 2
         # moving-jaw side: of the feasible sides, the one whose wrist roll is nearest the place roll. Keeps the pick roll
@@ -144,30 +217,54 @@ class Expert:
         # the carry rotation short.
         others = [o for k, o in enumerate(st.supply) if k != st.pick]
         sides = G.jaw_sides(box, others) or [st.meta.get("moving_jaw_side", 1) or 1]
-        p_grip = np.array([sim.xin + dim["width"] / 2 + 0.002, 0.0, sim.ztip + 0.010])
+        p_grip = np.array([sim.xin + dim["width"] / 2 + 0.002, 0.0, sim.ztip + 0.010])     # v1: fixed jaw 2 mm off the box
         cands = []
         for side in sides:
             xd = side * Rb[:2, 1] / np.linalg.norm(Rb[:2, 1])        # gripper +x -> moving jaw side
-            q_c, e_c, t_c = sim.ik(p_grip, np.r_[centre[:2], top_z], xd, self.seeds(np.r_[centre[:2], top_z]), signed=True)
+            mg = self.grasp_margin(box, others, side) if v2 else None
+            pg = self.grip_point(dim, mg[0]) if v2 else p_grip    # feasibility with the grip point actually used
+            q_c, e_c, t_c = sim.ik(pg, np.r_[centre[:2], top_z], xd, self.seeds(np.r_[centre[:2], top_z]), signed=True)
             if e_c <= 3 and t_c <= 10:
-                cands.append((abs(q_c[4] - ROLL_REF), side, xd, q_c, e_c, t_c))
+                cands.append((abs(q_c[4] - ROLL_REF), side, xd, q_c, e_c, t_c, mg, pg))
         if not cands:
-            return dict(ok=False, reason="ik_pick")
-        _, side, xdir, q_g, e, tilt = min(cands, key=lambda c: c[0])
+            return dict(ok=False, reason="ik_pick", **info)
+        _, side, xdir, q_g, e, tilt, mg, pg = min(cands, key=lambda c: c[0])
         self.pick_side = side
-        g_open = sim.gripper_sim(PREGRASP[box.type]); g_close = sim.gripper_sim(0.0)
+        g_close = sim.gripper_sim(0.0)
+        if v2:                                              # v2 grasp, margins from the free space beside the box
+            p_grip = pg; info["grasp_margin_mm"] = [round(mg[0] * 1000, 1), round(mg[1] * 1000, 1)]
+            g_open = sim.gripper_sim(CONTACT_READING[box.type] + (mg[0] + mg[1]) / GAP_PER_UNIT)
+        else:
+            g_open = sim.gripper_sim(PREGRASP[box.type])
         # pre-grasp above, then straight down
         q_pre, e2, _ = sim.ik(p_grip, np.r_[centre[:2], top_z + 0.05], xdir, [q_g] + self.seeds(np.r_[centre[:2], top_z + 0.05]),
                               w_orient=10.0, signed=True)
+        sim.set_noise(dart)
         sim.move(q_pre, g_open, 1.0)
-        q = self.straight(p_grip, centre[:2], top_z + 0.05, top_z, xdir, q_pre, g_open)
+        if v2:
+            q = self.straight(p_grip, centre[:2], top_z + 0.05, top_z + HOVER, xdir, q_pre, g_open)
+            sim.wait(HOVER_T)                               # hover: the wrist camera looks straight down at the box
+            zs = [top_z + HOVER, top_z + NOISE_OFF_ABOVE]
+            q = self.straight(p_grip, centre[:2], zs[0], zs[1], xdir, q, g_open, step=0.003, speed_time=0.2)
+            sim.set_noise(False)                            # clean final 2.5 cm (fade 0.3 s)
+            q = self.straight(p_grip, centre[:2], zs[1], top_z, xdir, q, g_open, step=0.003, speed_time=0.2)
+            sim.wait(PRECLOSE_T)
+        else:
+            q = self.straight(p_grip, centre[:2], top_z + 0.05, top_z, xdir, q_pre, g_open)
         sim.move(q, g_close, 0.6); sim.wait(0.3)
-        q = self.straight(p_grip, centre[:2], top_z, top_z + LIFT, xdir, q, g_close)
+        if v2:                                              # lift 2 cm, then check the grasp like the real skill will
+            q = self.straight(p_grip, centre[:2], top_z, top_z + 0.02, xdir, q, g_close)
+            info["grasp_reading"] = round(self.reading(), 1)
+            if self.reading() < CONTACT_READING[box.type] - 4:
+                return dict(ok=False, reason="missed_grasp", **info)
+            q = self.straight(p_grip, centre[:2], top_z + 0.02, top_z + LIFT, xdir, q, g_close)
+        else:
+            q = self.straight(p_grip, centre[:2], top_z, top_z + LIFT, xdir, q, g_close)
         # held-box pose in the gripper frame (privileged)
         Rg = d.xmat[sim.gb].reshape(3, 3); xg = d.xpos[sim.gb]
         b_in_g = Rg.T @ (d.xpos[bid] - xg)
         if d.xpos[bid][2] < top_z + LIFT * 0.6 - dim["height"]:
-            return dict(ok=False, reason="missed_grasp")
+            return dict(ok=False, reason="missed_grasp", **info)
         Rbg = Rg.T @ d.xmat[bid].reshape(3, 3)                       # box orientation in the gripper frame
         # place target
         top = st.stack[-1]; ht = G.BOX[top.type]["height"]
@@ -213,9 +310,12 @@ class Expert:
         # carry: first rise to a safe height above both the pick and the stack, then over
         safe = max(tgt_above[2], d.xpos[bid][2]) + 0.02
         q_up, _, _ = sim.ik(b_in_g, np.r_[d.xpos[bid][:2], safe], xdir, [q], w_orient=10.0, signed=True)
+        sim.set_noise(dart)                                 # noise during the carry, away from boxes
         sim.move(q_up, g_close, 0.6)
         q_over, _, _ = sim.ik(b_in_g, np.r_[xy_t, safe], xdir_p, [q_above], w_orient=10.0, signed=True)
         sim.move(q_over, g_close, 1.0)
+        sim.set_noise(False)                                # clean from here: approach, descent, release, retract
+        sim.wait(0.3 if dart else 0.0)                      # let the noise fade out above the stack
         sim.move(q_above, g_close, 0.6)
         # straight down to the release height, slow near the top
         q = self.straight(b_in_g, xy_t, tgt_above[2], z_rel, xdir_p, q_above, g_close, step=0.003, speed_time=0.1, slow=0.25)
@@ -243,7 +343,7 @@ class Expert:
         ok = on_top and moved < 0.005 and max(tilts) < 5 and nb_tilt < 5
         ok = ok and not self.hit
         reason = "ok" if ok else "hit_backdrop" if self.hit else ("knocked_stack" if (moved >= 0.005 or max(tilts) >= 5) else "misplaced")
-        return dict(ok=bool(ok), reason=reason, stack_moved_mm=float(moved * 1000), new_box_tilt=float(nb_tilt),
+        return dict(ok=bool(ok), reason=reason, **info, stack_moved_mm=float(moved * 1000), new_box_tilt=float(nb_tilt),
                     worst_ik_err_mm=float(self.worst_err), moving_jaw_side=int(self.pick_side), release_tilt_deg=float(t_rel),
                     place_offset_mm=float(np.linalg.norm(nb[:2] - xy_t) * 1000), support_margin_mm=float(margin * 1000))
 
@@ -258,13 +358,24 @@ def home_fn(sim):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--n", type=int, default=20); ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--kind", default="clean", choices=("clean", "dart", "retry", "v1"))
+    ap.add_argument("--v2-states", action="store_true", help="v2 state distribution (dense supplies) + strict rest check")
+    ap.add_argument("--game-states", action="store_true", help="full-v2 states: game-rule supplies + fixed layout (SUPPLY_P_GAME)")
+    ap.add_argument("--grip-depth", default="deep", choices=("v1", "deep")); ap.add_argument("--fixed-margin-max", type=float, default=None)
     a = ap.parse_args()
+    global GRIP_DEPTH, FIXED_MARGIN_MAX
+    GRIP_DEPTH = a.grip_depth
+    if a.fixed_margin_max is not None:
+        FIXED_MARGIN_MAX = a.fixed_margin_max / 1000
     sim = GT.Sim(); rng = np.random.default_rng(a.seed); ex = Expert(sim, rng)
     res = []
     for i in range(a.n):
-        st, _ = G.sample_state(rng, sim.m, sim.d, home=home_fn(sim))
-        r = ex.run(st); r.update(height=st.meta["stack_height"], pairing=st.meta["pairing"]); res.append(r)
-        print(f"{i:3d} h={r['height']} {r['pairing']:14s} -> {r['reason']:14s}" +
+        kw = dict(height_p=G.HEIGHT_P_V2, rest=2.0, hard_p=0.6) if (a.v2_states or a.game_states) else {}
+        if a.game_states:
+            kw["supply_p"] = G.SUPPLY_P_GAME
+        st, _ = G.sample_state(rng, sim.m, sim.d, home=home_fn(sim), **kw)
+        r = ex.run(st, kind=a.kind); r.update(height=st.meta["stack_height"], pairing=st.meta["pairing"]); res.append(r)
+        print(f"{i:3d} h={r['height']} {r['pairing']:14s} -> {r['reason']:16s} margin/side {r.get('grasp_margin_mm', '-')} mm," +
               (f" moved {r['stack_moved_mm']:.1f} mm, offset {r['place_offset_mm']:.1f} mm, margin {r['support_margin_mm']:.1f} mm,"
                f" worst IK {r['worst_ik_err_mm']:.1f} mm, release tilt {r['release_tilt_deg']:.0f} deg" if 'stack_moved_mm' in r else ""))
         if not r["ok"] and getattr(ex, "dbg", None) and r["reason"] == "misplaced":

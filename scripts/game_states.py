@@ -129,6 +129,17 @@ def side_free(b, others, side, clear):
 FIXED_CLEAR, MOVING_CLEAR = 0.010, 0.010
 
 
+def side_clear_width(b, others, side, cap=0.03):
+    """Free width (m) of the strip beside one long side over the jaw zone, up to the nearest other box (cap if none)."""
+    if side_free(b, others, side, cap):
+        return cap
+    lo, hi = 0.0, cap
+    while hi - lo > 0.0002:
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if side_free(b, others, side, mid) else (lo, mid)
+    return lo
+
+
 def jaw_sides(b, others):
     """All feasible moving-jaw sides (+1/-1) for box b."""
     return [side for side in (1, -1) if side_free(b, others, side, MOVING_CLEAR) and side_free(b, others, -side, FIXED_CLEAR)]
@@ -174,7 +185,39 @@ def sample_stack(rng, n, hard, types=None):
     return boxes, pool, dict(precarious=bool(precarious), sig_xy_mm=sig_xy * 1000)
 
 
-def sample_supply(rng, pool, grid):
+RULE_SIDE, RULE_GAP = 0.015, 0.010   # game rule: >= 1.5 cm beside long sides, >= 1 cm everywhere (2 cm does not fit with a clear pick order)
+LAYOUT_FILE = ROOT / "sim/assets/supply_layout.yaml"
+
+
+def rule_ok(b, others):
+    """Game-rule spacing between b and the other supply boxes (both directions)."""
+    if any(overlap(b, o, pad=RULE_GAP) for o in others):
+        return False
+    if not all(side_free(b, others, s, RULE_SIDE) for s in (1, -1)):
+        return False
+    return all(side_free(o, [b], s, RULE_SIDE) for o in others for s in (1, -1))
+
+
+def layout_supply(rng, pos_jitter=0.002, yaw_jitter=np.radians(3)):        # template placement accuracy
+    """The fixed starting layout (sim/assets/supply_layout.yaml) as a human would set it up: each box within
+    +/- pos_jitter and +/- yaw_jitter of its slot (and either way round). None if a jittered box leaves the
+    usable supply or overlaps a neighbour."""
+    L = yaml.safe_load(LAYOUT_FILE.read_text())
+    S = SUPPLY_RECT; head = np.arctan2(*(S[1] - S[0])[::-1])
+    for _ in range(50):
+        boxes = []
+        for slot in L["boxes"]:
+            t = slot["type"]; c = np.array(slot["centre_world_m"]) + rng.uniform(-pos_jitter, pos_jitter, 2)
+            yaw = head + (0 if slot["long_axis"] == "along edge 1->2" else np.pi / 2) + rng.uniform(-yaw_jitter, yaw_jitter) \
+                + np.pi * rng.integers(2)
+            boxes.append(Box(t, c, float(yaw), MAT_Z + BOX[t]["height"] / 2))
+        if all(inside_supply(b, margin=0.001) for b in boxes) and \
+                not any(overlap(a, b, pad=0.001) for i, a in enumerate(boxes) for b in boxes[i + 1:]):
+            return boxes
+    return None
+
+
+def sample_supply(rng, pool, grid, rule=False):
     boxes = []
     types = [t for t in TYPE_ORDER for _ in range(pool[t])]
     rng.shuffle(types)
@@ -190,7 +233,7 @@ def sample_supply(rng, pool, grid):
             else:
                 yaw = rng.uniform(0, np.pi)
             b = Box(t, p, yaw, MAT_Z + BOX[t]["height"] / 2)
-            if inside_supply(b) and not any(overlap(b, o, pad=0.002) for o in boxes):
+            if inside_supply(b) and (rule_ok(b, boxes) if rule else not any(overlap(b, o, pad=0.002) for o in boxes)):
                 boxes.append(b); break
         else:
             return None
@@ -226,10 +269,11 @@ def grid_supply(rng):
     return None
 
 
-def progress_game(rng, n, mode="act", requested=None):
-    """Play n turns from a full grid (human first: a random box; robot: its pick rule). The removed boxes,
-    in order, become the stack (bottom first); what's left is the supply. None if the robot got stuck."""
-    supply = grid_supply(rng)
+def progress_game(rng, n, mode="act", requested=None, start="grid"):
+    """Play n turns from a full start (human first: a random box; robot: its pick rule). The removed boxes,
+    in order, become the stack (bottom first); what's left is the supply. None if the robot got stuck.
+    start: "grid" (v1/v2 dense loose grid) or "layout" (the fixed game-rule layout, jittered)."""
+    supply = grid_supply(rng) if start == "grid" else layout_supply(rng)
     if supply is None:
         return None
     removed = []
@@ -270,9 +314,11 @@ def apply(state, model, data):
         data.qpos[adr + 3:adr + 7] = [np.cos(b.yaw / 2), 0, 0, np.sin(b.yaw / 2)]
 
 
-def stands(model, data, state, settle=0.4, t=0.6, tol=0.001, tilt_tol=2.0):
+def stands(model, data, state, settle=0.4, t=0.6, tol=0.001, tilt_tol=2.0, rest=0.0, rest_tol=0.0005):
     """Let contacts settle (soft contacts sink a fraction of a mm per level), then require that
-    no stack box moves > tol or tilts > tilt_tol over the next t seconds (arm parked at home)."""
+    no stack box moves > tol or tilts > tilt_tol over the next t seconds (arm parked at home).
+    rest > 0 (data v2): then also < rest_tol motion over a further `rest` seconds (rejects the rare slow creep
+    of a resting top box found in Phase 6)."""
     mujoco.mj_forward(model, data)
     for _ in range(int(settle / model.opt.timestep)):
         mujoco.mj_step(model, data)
@@ -286,30 +332,56 @@ def stands(model, data, state, settle=0.4, t=0.6, tol=0.001, tilt_tol=2.0):
         R = data.xmat[bid].reshape(3, 3)
         if np.degrees(np.arccos(np.clip(R[2, 2], -1, 1))) > tilt_tol:
             return False
+    if rest > 0:
+        p1 = {b.body: data.xpos[model.body(b.body).id].copy() for b in state.stack}
+        for _ in range(int(rest / model.opt.timestep)):
+            mujoco.mj_step(model, data)
+        if any(np.linalg.norm(data.xpos[model.body(b.body).id] - p1[b.body]) > rest_tol for b in state.stack):
+            return False
     return True
 
 
-def sample_state(rng, model, data, n=None, mode="act", requested=None, hard_p=0.5, home=None, max_tries=200, tall_p=None):
+HEIGHT_P_V2 = {1: 0.20, 2: 0.175, 3: 0.175, 4: 0.1125, 5: 0.1125, 6: 0.1125, 7: 0.1125}   # data v2: dense supplies (2-3) 35 %
+
+
+SUPPLY_P_GAME = {"layout": 0.5, "rule": 0.3, "dense": 0.2}   # full v2 run: the game rule + fixed layout, some dense
+SUPPLY_P_EVAL_GAME = {"layout": 0.7, "rule": 0.3}            # game-rule test set: what the real game looks like
+
+
+def sample_state(rng, model, data, n=None, mode="act", requested=None, hard_p=0.5, home=None, max_tries=200, tall_p=None,
+                 height_p=None, rest=0.0, supply_p=None):
     """Returns (State, settled qpos) with the stack standing and a pickable box chosen.
-    tall_p: share of states with height 4..MAX_STACK (uniform within each group); None = uniform over all heights."""
+    tall_p: share of states with height 4..MAX_STACK (uniform within each group); None = uniform over all heights.
+    height_p: {height: probability} (overrides tall_p; data v2 uses HEIGHT_P_V2). rest: extra rest check (stands())."""
     for _ in range(max_tries):
         if n is not None:
             nn = n
+        elif height_p is not None:
+            hs = sorted(height_p); nn = int(rng.choice(hs, p=np.array([height_p[h] for h in hs]) / sum(height_p.values())))
         elif tall_p is None:
             nn = int(rng.integers(MIN_STACK, MAX_STACK + 1))
         else:
             nn = int(rng.integers(4, MAX_STACK + 1)) if rng.random() < tall_p else int(rng.integers(MIN_STACK, 4))
         hard = rng.random() < hard_p
-        progression = rng.random() < 0.6
-        if progression:                                   # supply = what's left of the real starting grid
-            g = progress_game(rng, nn)
+        kind = "dense" if supply_p is None else str(rng.choice(list(supply_p), p=np.array(list(supply_p.values())) / sum(supply_p.values())))
+        supply = None
+        if kind == "rule":                                # random layout obeying the game-rule gaps
+            stack, pool, info = sample_stack(rng, nn, hard)
+            for _ in range(10):
+                supply = sample_supply(rng, pool, grid=rng.random() < 0.5, rule=True)
+                if supply is not None:
+                    break
+            if supply is None:                           # too many boxes left for a random rule layout
+                kind = "layout"
+        progression = kind == "layout" or (kind == "dense" and rng.random() < 0.6)
+        if progression:                                   # supply = what's left of the real starting layout/grid
+            g = progress_game(rng, nn, start="layout" if kind == "layout" else "grid")
             if g is None:
                 REJECT["supply"] += 1; continue
             stack_types, supply = g
             stack, pool, info = sample_stack(rng, nn, hard, types=stack_types)
-        else:
+        elif supply is None:
             stack, pool, info = sample_stack(rng, nn, hard)
-            supply = None
             for _ in range(10):
                 supply = sample_supply(rng, pool, grid=rng.random() < 0.8)
                 if supply is not None:
@@ -319,7 +391,9 @@ def sample_state(rng, model, data, n=None, mode="act", requested=None, hard_p=0.
         if mode == "vla" and requested is not None and pool[requested] == 0:
             continue
         st = State(stack=stack, supply=supply, meta=dict(info, hard=bool(hard), stack_height=nn, mode=mode,
-                                                         supply_mode="game_progression" if progression else "random"))
+                                                         supply_mode=("layout_progression" if kind == "layout" else
+                                                                      "rule_random" if kind == "rule" else
+                                                                      "game_progression" if progression else "random")))
         st.pick = choose_pick(st, mode, requested)
         if st.pick < 0:
             REJECT["no_clear_pick"] += 1; continue
@@ -327,7 +401,7 @@ def sample_state(rng, model, data, n=None, mode="act", requested=None, hard_p=0.
         if home is not None:
             home(model, data)
         assign_bodies(st, model); apply(st, model, data)
-        if not stands(model, data, st):
+        if not stands(model, data, st, rest=rest):
             REJECT["fell"] += 1; continue
         for b in st.stack + st.supply:                 # record settled poses
             bid = model.body(b.body).id

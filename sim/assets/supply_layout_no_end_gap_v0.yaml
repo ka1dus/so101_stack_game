@@ -1,0 +1,111 @@
+note: fixed starting supply layout maximizing jaw clearance (scripts/supply_layout.py);
+  mat frame = cm from corner 1 along edge 1->2 (a) and along edge 1->4 (b); yaw relative
+  to edge 1->2
+min_jaw_clearance_mm: 8.8
+pick_order_margin_mm: 11.5
+min_gap_any_direction_mm: 8.9
+boxes:
+- id: 1
+  type: no3
+  centre_world_m:
+  - 0.0883
+  - 0.1809
+  centre_mat_cm:
+  - 8.0
+  - 3.6
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 24.8
+  - 21.2
+  dist_to_stack_spot_cm: 30.5
+- id: 2
+  type: no3
+  centre_world_m:
+  - 0.1686
+  - 0.0659
+  centre_mat_cm:
+  - 3.7
+  - 17.0
+  long_axis: along edge 1->2
+  jaw_clearance_mm:
+  - 10.2
+  - 40.0
+  dist_to_stack_spot_cm: 17.1
+- id: 3
+  type: no3
+  centre_world_m:
+  - 0.1461
+  - 0.1359
+  centre_mat_cm:
+  - 7.9
+  - 11.0
+  long_axis: along edge 1->2
+  jaw_clearance_mm:
+  - 18.1
+  - 17.7
+  dist_to_stack_spot_cm: 24.4
+- id: 4
+  type: no35
+  centre_world_m:
+  - 0.2105
+  - 0.1298
+  centre_mat_cm:
+  - 11.3
+  - 16.5
+  long_axis: along edge 1->2
+  jaw_clearance_mm:
+  - 17.7
+  - 40.0
+  dist_to_stack_spot_cm: 23.1
+- id: 5
+  type: no35
+  centre_world_m:
+  - 0.1201
+  - 0.2307
+  centre_mat_cm:
+  - 13.9
+  - 3.2
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 21.2
+  - 40.0
+  dist_to_stack_spot_cm: 34.3
+- id: 6
+  type: no35
+  centre_world_m:
+  - 0.109
+  - 0.087
+  centre_mat_cm:
+  - 1.8
+  - 10.9
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 40.0
+  - 8.8
+  dist_to_stack_spot_cm: 21.1
+- id: 7
+  type: no35
+  centre_world_m:
+  - 0.0523
+  - 0.1299
+  centre_mat_cm:
+  - 1.8
+  - 3.8
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 40.0
+  - 24.8
+  dist_to_stack_spot_cm: 27.7
+- id: 8
+  type: no10
+  centre_world_m:
+  - 0.1769
+  - 0.1863
+  centre_mat_cm:
+  - 13.8
+  - 10.4
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 9.2
+  - 40.0
+  dist_to_stack_spot_cm: 28.9

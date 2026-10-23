@@ -35,12 +35,12 @@ Debug prints in `run()` (`self.dbg`, ik_place line) can be removed once stable.
   `scripts/export_lerobot.py` (WSL; untested against the WSL version yet).
 - `notes/phase5.md` §5–7 written.
 
-## Large generation MOVED TO THE WINDOWS MACHINE (user decision 2026-10-21: the Mac's ~5 h was too long)
-- Mac run stopped; 326 ACT episodes kept in `data/raw/act_main_w0..3` (half-finished ones deleted).
-- Remaining 1,674 ACT + 1,000 VLA: native Windows, `scripts/run_generation.py` (cross-platform launcher, tested
-  on the Mac). Full user instructions: `notes/phase5_gpu_generation.md` (install, check, run, pause/resume,
-  copy the Mac episodes, WSL export + push).
-- Export time for the full set is not measured.
+## Large generation RUNNING ON THE MAC again (user decision 2026-10-21: the PC has only 6 cores, no gain)
+- Resumed with `scripts/run_large_generation.sh` (nohup) from 326 ACT episodes; 4 workers × (500 ACT + 250 VLA).
+  `caffeinate -i -w <launcher pid>` blocks idle sleep until it ends (lid close still sleeps = pause).
+- Logs append to `data/raw/logs/worker_*.log` (a "--- resumed" line marks each restart).
+- If it dies (restart, empty battery): run `scripts/run_large_generation.sh` again; it resumes each run.
+- The Windows instructions (`notes/phase5_gpu_generation.md`) stay as a fallback.
 
 ## Commands
     MUJOCO_GL=cgl ~/.venvs/so101_stack_sim/bin/python scripts/expert.py --n 20 --seed 0   # ~2.7 min

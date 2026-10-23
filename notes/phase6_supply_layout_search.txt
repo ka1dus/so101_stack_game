@@ -1,0 +1,151 @@
+restart  0: min clearance   7.2 mm, mean  20.8 mm, pick-order margin  9.9 mm
+restart  1: min clearance  12.5 mm, mean  20.2 mm, pick-order margin  8.7 mm
+restart  2: min clearance  13.4 mm, mean  22.2 mm, pick-order margin 15.1 mm
+restart  3: min clearance  17.8 mm, mean  28.8 mm, pick-order margin 16.5 mm
+restart  4: min clearance  13.0 mm, mean  23.1 mm, pick-order margin  5.7 mm
+restart  5: min clearance   9.7 mm, mean  19.9 mm, pick-order margin  3.5 mm
+restart  6: min clearance  13.9 mm, mean  21.5 mm, pick-order margin  9.7 mm
+restart  7: min clearance  15.3 mm, mean  26.0 mm, pick-order margin  7.9 mm
+restart  8: min clearance   5.8 mm, mean  15.9 mm, pick-order margin 11.8 mm
+restart  9: min clearance  13.4 mm, mean  21.9 mm, pick-order margin  5.5 mm
+restart 10: min clearance   3.8 mm, mean  17.9 mm, pick-order margin  8.8 mm
+restart 11: min clearance  12.7 mm, mean  24.5 mm, pick-order margin 12.6 mm
+restart 12: min clearance  19.8 mm, mean  28.7 mm, pick-order margin  4.2 mm
+restart 13: min clearance  11.6 mm, mean  26.2 mm, pick-order margin 12.0 mm
+restart 14: min clearance   9.8 mm, mean  20.6 mm, pick-order margin  4.5 mm
+restart 15: min clearance  16.2 mm, mean  27.6 mm, pick-order margin  5.9 mm
+restart 16: min clearance   9.8 mm, mean  23.7 mm, pick-order margin  4.7 mm
+restart 17: min clearance  10.3 mm, mean  20.4 mm, pick-order margin 13.3 mm
+restart 18: min clearance  11.7 mm, mean  23.0 mm, pick-order margin 10.6 mm
+restart 19: min clearance  17.5 mm, mean  27.2 mm, pick-order margin  2.9 mm
+restart 20: min clearance   4.1 mm, mean  18.1 mm, pick-order margin  1.1 mm
+restart 21: min clearance  21.2 mm, mean  29.4 mm, pick-order margin  7.4 mm
+restart 22: min clearance  13.6 mm, mean  25.3 mm, pick-order margin  9.9 mm
+restart 23: min clearance   8.1 mm, mean  20.6 mm, pick-order margin  2.2 mm
+restart 24: min clearance  20.5 mm, mean  29.4 mm, pick-order margin  5.0 mm
+restart 25: min clearance   6.7 mm, mean  17.8 mm, pick-order margin  9.9 mm
+restart 26: min clearance  22.7 mm, mean  29.6 mm, pick-order margin  8.4 mm
+restart 27: min clearance  12.2 mm, mean  21.9 mm, pick-order margin 10.9 mm
+restart 28: min clearance  20.5 mm, mean  29.2 mm, pick-order margin 11.1 mm
+restart 29: min clearance  12.8 mm, mean  22.1 mm, pick-order margin  2.4 mm
+restart 30: min clearance  13.6 mm, mean  21.0 mm, pick-order margin  9.9 mm
+restart 31: min clearance   8.3 mm, mean  20.0 mm, pick-order margin  6.7 mm
+restart 32: min clearance  12.8 mm, mean  25.4 mm, pick-order margin  9.2 mm
+restart 33: min clearance  19.5 mm, mean  28.4 mm, pick-order margin  3.2 mm
+restart 34: min clearance  15.9 mm, mean  29.0 mm, pick-order margin  7.9 mm
+restart 35: min clearance  15.6 mm, mean  24.5 mm, pick-order margin 15.3 mm
+restart 36: min clearance  10.2 mm, mean  20.2 mm, pick-order margin  4.3 mm
+restart 37: min clearance  16.1 mm, mean  27.8 mm, pick-order margin  8.9 mm
+restart 38: min clearance  13.1 mm, mean  26.9 mm, pick-order margin 12.0 mm
+restart 39: min clearance  13.6 mm, mean  21.1 mm, pick-order margin  5.4 mm
+note: fixed starting supply layout maximizing jaw clearance (scripts/supply_layout.py);
+  mat frame = cm from corner 1 along edge 1->2 (a) and along edge 1->4 (b); yaw relative
+  to edge 1->2
+min_jaw_clearance_mm: 22.7
+pick_order_margin_mm: 8.4
+boxes:
+- id: 1
+  type: no3
+  centre_world_m:
+  - 0.0934
+  - 0.1757
+  centre_mat_cm:
+  - 7.9
+  - 4.4
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 23.1
+  - 22.7
+  dist_to_stack_spot_cm: 29.9
+- id: 2
+  type: no3
+  centre_world_m:
+  - 0.1716
+  - 0.0663
+  centre_mat_cm:
+  - 3.9
+  - 17.2
+  long_axis: along edge 1->2
+  jaw_clearance_mm:
+  - 23.1
+  - 40.0
+  dist_to_stack_spot_cm: 17.1
+- id: 3
+  type: no3
+  centre_world_m:
+  - 0.1511
+  - 0.1338
+  centre_mat_cm:
+  - 8.0
+  - 11.5
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 25.3
+  - 22.7
+  dist_to_stack_spot_cm: 24.1
+- id: 4
+  type: no35
+  centre_world_m:
+  - 0.2184
+  - 0.1282
+  centre_mat_cm:
+  - 11.6
+  - 17.2
+  long_axis: along edge 1->2
+  jaw_clearance_mm:
+  - 23.0
+  - 40.0
+  dist_to_stack_spot_cm: 23.0
+- id: 5
+  type: no35
+  centre_world_m:
+  - 0.1309
+  - 0.2228
+  centre_mat_cm:
+  - 13.9
+  - 4.5
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 22.7
+  - 40.0
+  dist_to_stack_spot_cm: 33.2
+- id: 6
+  type: no35
+  centre_world_m:
+  - 0.1003
+  - 0.0933
+  centre_mat_cm:
+  - 1.8
+  - 9.9
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 40.0
+  - 25.3
+  dist_to_stack_spot_cm: 22.1
+- id: 7
+  type: no35
+  centre_world_m:
+  - 0.0511
+  - 0.1314
+  centre_mat_cm:
+  - 1.8
+  - 3.6
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 40.0
+  - 23.1
+  dist_to_stack_spot_cm: 27.9
+- id: 8
+  type: no10
+  centre_world_m:
+  - 0.178
+  - 0.1852
+  centre_mat_cm:
+  - 13.8
+  - 10.5
+  long_axis: along edge 1->4
+  jaw_clearance_mm:
+  - 22.7
+  - 40.0
+  dist_to_stack_spot_cm: 28.8
+

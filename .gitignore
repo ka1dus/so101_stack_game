@@ -4,3 +4,4 @@ __pycache__/
 .DS_Store
 _to_delete/
 .pytest_cache/
+MUJOCO_LOG.TXT

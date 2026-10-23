@@ -54,6 +54,31 @@ class Sim:
         self.steps_per_ctrl = int(round(1 / CTRL_HZ / self.m.opt.timestep))
         self.kin = mujoco.MjData(self.m)
         self.on_tick = None            # called after every 30 Hz control tick (recording hook)
+        # DART-style execution noise (data v2): the arm executes plan + OU noise, recorders store the clean plan
+        self.plan_q = None; self.plan_g = None
+        self.noise_sigma = np.radians(2.0); self.noise_tau = 0.5; self.noise_fade = 0.3
+        self._nx = np.zeros(5); self._gain = 0.0; self._gain_target = 0.0; self.noise_rng = np.random.default_rng(0)
+
+    def sync_plan(self):
+        """Take the current actuator targets as the plan (call after writing d.ctrl directly)."""
+        self.plan_q = np.array([self.d.ctrl[self.act[j]] for j in self.arm]); self.plan_g = float(self.d.ctrl[self.act["gripper"]])
+
+    def set_noise(self, on):
+        """Fade the execution noise in/out over noise_fade seconds (the OU state keeps evolving)."""
+        self._gain_target = 1.0 if on else 0.0
+
+    def clean_ctrl(self):
+        """The planned targets in JOINT_NAMES order (the action label); equals d.ctrl when noise is off."""
+        return np.r_[self.plan_q, self.plan_g]
+
+    def _apply(self):
+        dt = 1.0 / CTRL_HZ
+        self._nx += -self._nx / self.noise_tau * dt + self.noise_sigma * np.sqrt(2 / self.noise_tau * dt) * self.noise_rng.standard_normal(5)
+        self._gain += np.clip(self._gain_target - self._gain, -dt / self.noise_fade, dt / self.noise_fade)
+        q = np.clip(self.plan_q + self._gain * self._nx, self.rng_lim[:, 0], self.rng_lim[:, 1])
+        for j, v in zip(self.arm, q):
+            self.d.ctrl[self.act[j]] = v
+        self.d.ctrl[self.act["gripper"]] = self.plan_g
 
     def gripper_sim(self, reading):
         return self.jm.real_to_sim(np.r_[np.zeros(5), reading])[5]
@@ -82,15 +107,15 @@ class Sim:
 
     # ---- motion: 30 Hz targets along a joint-space ramp ----
     def move(self, q_to, g_to, min_time=0.3, video=None):
-        q_from = np.array([self.d.ctrl[self.act[j]] for j in self.arm]); g_from = self.d.ctrl[self.act["gripper"]]
+        if self.plan_q is None:
+            self.sync_plan()
+        q_from, g_from = self.plan_q.copy(), self.plan_g
         T = max(min_time, np.max(np.abs(q_to - q_from)) / MAX_SPEED)
         n = max(1, int(T * CTRL_HZ))
         for i in range(1, n + 1):
             s = i / n; s = s * s * (3 - 2 * s)                   # smoothstep
-            q = q_from + s * (q_to - q_from); g = g_from + s * (g_to - g_from)
-            for j, v in zip(self.arm, q):
-                self.d.ctrl[self.act[j]] = v
-            self.d.ctrl[self.act["gripper"]] = g
+            self.plan_q = q_from + s * (q_to - q_from); self.plan_g = g_from + s * (g_to - g_from)
+            self._apply()
             for _ in range(self.steps_per_ctrl):
                 mujoco.mj_step(self.m, self.d)
             if video is not None:
@@ -99,7 +124,10 @@ class Sim:
                 self.on_tick()
 
     def wait(self, t, video=None):
+        if self.plan_q is None:
+            self.sync_plan()
         for _ in range(int(t * CTRL_HZ)):
+            self._apply()
             for _ in range(self.steps_per_ctrl):
                 mujoco.mj_step(self.m, self.d)
             if video is not None:
@@ -124,6 +152,7 @@ def trial(sim, t, rng, video=None):
     d.qpos[sim.qadr] = sim.home[:5]; d.qpos[sim.gadr] = sim.home[5]
     for j, v in zip(JOINT_NAMES, sim.home):
         d.ctrl[sim.act[j]] = v
+    sim.sync_plan()
     target_body = None
     for b in range(m.nbody):
         n = m.body(b).name
