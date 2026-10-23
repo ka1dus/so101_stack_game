@@ -5,3 +5,4 @@ __pycache__/
 _to_delete/
 .pytest_cache/
 MUJOCO_LOG.TXT
+logs/

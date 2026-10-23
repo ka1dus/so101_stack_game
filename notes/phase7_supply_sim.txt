@@ -1,0 +1,25 @@
+samples 400; slot-frames 6400
+slot occupancy: TP 3686  FN 33  TN 2671  FP 10
+dark share, occupied slots: max 0.926  p99 0.491; empty slots: min 0.000  p1 0.688
+turn-level 'which slot was taken': 391/400 correct
+with an 'ask the player' band (0.3, 0.7) on the dark share: plain sure, correct 12, plain unsure 12, printed sure, correct 349, printed unsure 27
+  error: ('s7001_0047', 'before', 3, 0.578)
+  error: ('s7001_0047', 'after', 3, 0.568)
+  error: ('s7001_0073', 'before', 6, 0.546)
+  error: ('s7001_0087', 'before', 6, 0.527)
+  error: ('s7002_0014', 'before', 6, 0.506)
+  error: ('s7002_0070', 'before', 7, 0.515)
+  error: ('s7002_0094', 'before', 8, 0.533)
+  error: ('s7002_0094', 'after', 8, 0.533)
+  error: ('s7003_0019', 'before', 7, 0.0)
+  error: ('s7003_0019', 'after', 7, 0.0)
+  error: ('s7003_0024', 'before', 1, 0.844)
+  error: ('s7003_0024', 'before', 3, 0.873)
+  error: ('s7003_0024', 'before', 4, 0.776)
+  error: ('s7003_0024', 'before', 5, 0.89)
+  error: ('s7003_0024', 'before', 6, 0.814)
+  error: ('s7003_0024', 'before', 8, 0.855)
+  error: ('s7003_0024', 'after', 1, 0.858)
+  error: ('s7003_0024', 'after', 3, 0.926)
+  error: ('s7003_0024', 'after', 5, 0.907)
+  error: ('s7003_0024', 'after', 6, 0.814)
