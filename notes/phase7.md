@@ -1,7 +1,7 @@
 # Phase 7: Classical perception (plan, in progress)
 
 Status 2026-10-23: D1–D3 approved. Sim test set built (§6); camera refit and supply-slot check work in sim (§7).
-`collapse_check()` built and scored in sim (§8): 0 false calls, 89 % of collapses detected. Waiting on the user's recording session (§4).
+`collapse_check()` (§8) and `drop_check()` (§9) built and scored in sim, 0 false calls each. Waiting on the user's recording session (§4).
 
 ## 1. What the inputs allow
 - **`inputs/videos/stack_collapse.mp4`** (301 frames) and **`human_turn.mp4`** (451 frames): 640×480, 30 fps, recorded
@@ -225,10 +225,56 @@ Nothing that moved more than 22 mm went undetected.
 **Not built yet:**
 - **Stack height measured from the image:** the type of each level comes from game history (D1), so the expected height
   is exact. Only the top position is estimated from the image.
-- `drop_check()` and `hand_in_workspace()`.
+- `hand_in_workspace()`.
 
 **For the real game:**
 - **Release frame:** the release-slide cue needs the frame at release. For a human turn that's the moment the hand
   leaves; for a robot turn it's the gripper opening. This is the start of the 3 s window, so the controller must buffer
   frames from then on.
 - **Fallback:** if the real clips break method a, the next step is the sim-trained segmenter (method b).
+
+## 9. Drop check (`perception/drop.py`), 2026-10-23
+**Test set:**
+- **Source:** `scripts/drop_testset.py`, 600 scripted pick-and-place turns on game-rule states, with no rendering, so it
+  runs on the Mac CPU.
+- **Injection:** each turn gets one injected event at a random carry tick:
+  - none: 239;
+  - slip (box and jaw friction cut): 125;
+  - knock (a 4–14 N shove for 0.1 s): 127;
+  - early open (gripper commanded open away from the stack): 109.
+- **Box types:** No.3 179, No.35 321, No.10 100.
+- **Recorded per 30 Hz tick:** what the real arm reports (joint readings and the gripper command, in LeRobot units), plus
+  the true box–gripper contact.
+- **Truth:** a drop is the box leaving the jaws (no contact for 3 ticks) after it was lifted 3 cm, anywhere but just
+  above the stack. There are 233 drops; only 3 knocks dislodged the box.
+- **Note:** the Phase 6 sim evaluations saved no gripper traces, so this scripted set replaces them. Policy traces would
+  have needed a GPU re-run.
+
+**Method** (joint readings only, plus the stack top from perception; jaw tips from the twin's kinematics):
+- **Holding:** the jaws are stopped by a box, i.e. the reading stays ≥ 5 units above a "close" command and steady over
+  5 ticks. That reading is the hold level.
+- **Carrying:** starts once the tips have risen 3 cm.
+- **Drop calls:**
+  - **slip:** the reading falls > 3 units below hold for 3 ticks (the jaws closed on nothing);
+  - **open:** the reading rises > 4 units above hold while the tips are outside the release zone (within 4 cm of the
+    stack top centre, −1 to +4.5 cm above its face).
+- **Release:** an opening inside the zone is the release.
+- **Slip over the stack:** a slip with the tips right over the stack (< 7 cm up) is also treated as a release, and the
+  collapse check judges the result.
+
+**Results** (`scripts/perception_eval.py --check drop`, `notes/phase7_drop_sim.txt`):
+- **0 false drop calls out of 367 normal turns**, including 124 knocks that didn't dislodge the box.
+- **223 of 233 drops detected**, median 0.13 s (max 0.2 s) after the box left the jaws.
+- **The 10 "misses":** boxes that slid out right over the stack, so the monitor hands them to the collapse check. Its
+  "box on the table" cue caught 16 of 16 fall-offs in §8.
+- **The trade-off:** calling these drops instead would also flag a box that slips out over the stack and lands on it
+  (seen once), which would make a player lose wrongly.
+
+**Bugs fixed while building it:**
+- the first rule armed on the closing gripper at home (No.10) and on empty grasps;
+- traces stopped as soon as the expert aborted, cutting off the drop.
+
+**Open:**
+- Check the real gripper's hold readings per type; the sim says No.3 ≈ 21, No.35 ≈ 18, No.10 ≈ 13.4 units. Cardboard
+  flexes, so the real reading may creep while carrying. The 3-unit slip margin needs checking on the real arm in Phase 8.
+- Decided with the user (2026-10-23): a box slipping out right over the stack is judged by the collapse check, not called a drop.

@@ -1,0 +1,14 @@
+episodes 600
+drops detected 223/233; false drop calls 0/367
+latency after the box left the jaws: median 0.13 s, max 0.20 s (negative = called before the 3-tick separation label)
+by injection (kind, truth, predicted): ('knock', False, False): 124, ('knock', True, False): 1, ('knock', True, True): 2, ('none', False, False): 239, ('open', False, False): 1, ('open', True, True): 108, ('slip', False, False): 3, ('slip', True, False): 9, ('slip', True, True): 113
+  ('d8001_0011', 'slip', 'no10', 'h4', 'missed', 'released', 'pred tick 265', 'drop tick 260', 'release tick None')
+  ('d8002_0014', 'slip', 'no10', 'h1', 'missed', 'released', 'pred tick 276', 'drop tick 271', 'release tick None')
+  ('d8002_0048', 'slip', 'no10', 'h2', 'missed', 'released', 'pred tick 259', 'drop tick 255', 'release tick None')
+  ('d8002_0059', 'slip', 'no10', 'h2', 'missed', 'released', 'pred tick 268', 'drop tick 264', 'release tick None')
+  ('d8003_0012', 'slip', 'no10', 'h3', 'missed', 'released', 'pred tick 268', 'drop tick 263', 'release tick None')
+  ('d8004_0014', 'slip', 'no10', 'h2', 'missed', 'released', 'pred tick 269', 'drop tick 264', 'release tick None')
+  ('d8004_0057', 'slip', 'no10', 'h4', 'missed', 'released', 'pred tick 276', 'drop tick 271', 'release tick None')
+  ('d8006_0042', 'knock', 'no3', 'h2', 'missed', 'released', 'pred tick 264', 'drop tick 261', 'release tick None')
+  ('d8006_0053', 'slip', 'no10', 'h2', 'missed', 'released', 'pred tick 258', 'drop tick 254', 'release tick None')
+  ('d8007_0007', 'slip', 'no10', 'h1', 'missed', 'released', 'pred tick 268', 'drop tick 263', 'release tick None')

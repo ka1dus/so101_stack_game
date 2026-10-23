@@ -105,13 +105,13 @@ def main():
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--check", default="supply"); ap.add_argument("--out", default=None)
     a = ap.parse_args()
-    dirs = sorted(p for p in Path(a.data).iterdir() if (p / "truth.json").exists())
-    REFINE = not a.no_refine
+    dirs = sorted(p for p in Path(a.data).iterdir() if (p / "truth.json").exists() or (p / "meta.json").exists())
+    REFINE = not a.no_refine and a.check != "drop"
     if REFINE:
         refine_all(dirs, a.workers)
     global a_data
     a_data = a.data
-    out = {"supply": eval_supply, "collapse": lambda d: eval_collapse(d, a.workers)}[a.check](dirs)
+    out = {"supply": eval_supply, "collapse": lambda d: eval_collapse(d, a.workers), "drop": eval_drop}[a.check](dirs)
     print(out)
     if a.out:
         Path(a.out).write_text(out + "\n")
@@ -178,6 +178,32 @@ def eval_collapse(dirs, workers=8, threshold_mm=15.0):
               f"false collapse calls {conf[(False, True)]}/{conf[(False, True)] + conf[(False, False)]}",
               "by event (kind, truth, predicted): " + ", ".join(f"{k}: {v}" for k, v in sorted(by.items()))]
     lines += [f"  miss: {m}" for m in mist]
+    return "\n".join(lines)
+
+
+
+def eval_drop(dirs):
+    """drop_check() on drop_testset.py traces: detection and latency of drops, false calls on normal turns."""
+    from perception.drop import Kinematics, drop_check
+    kin = Kinematics(); conf = Counter(); lat = []; by = Counter(); mist = []
+    for p in dirs:
+        A = np.load(p / "trace.npy"); mt = json.loads((p / "meta.json").read_text())
+        ev, k = drop_check(A[:, :6], A[:, 6], mt["top_xy"], mt["top_face"], kin)
+        pred = bool(ev and ev.startswith("drop")); truth = mt["drop"]
+        conf[(truth, pred)] += 1; by[(mt["kind"], truth, pred)] += 1
+        if truth and pred:
+            lat.append(k - mt["drop_tick"])
+        if truth != pred:
+            mist.append((p.name, mt["kind"], mt["type"], f"h{mt['height']}", "missed" if truth else "FALSE CALL", ev,
+                         f"pred tick {k}", f"drop tick {mt['drop_tick']}", f"release tick {mt['release_tick']}"))
+    lat = np.array(lat) / 30.0
+    lines = [f"episodes {len(dirs)}",
+             f"drops detected {conf[(True, True)]}/{conf[(True, True)] + conf[(True, False)]}; "
+             f"false drop calls {conf[(False, True)]}/{conf[(False, True)] + conf[(False, False)]}",
+             (f"latency after the box left the jaws: median {np.median(lat):.2f} s, max {lat.max():.2f} s (negative = "
+              f"called before the 3-tick separation label)") if len(lat) else "",
+             "by injection (kind, truth, predicted): " + ", ".join(f"{k}: {v}" for k, v in sorted(by.items()))]
+    lines += [f"  {m}" for m in mist]
     return "\n".join(lines)
 
 
