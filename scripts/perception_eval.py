@@ -213,12 +213,12 @@ def _hand_one(p):
     from perception.drop import Kinematics
     from perception.hand import HandMonitor
     from perception.twin import Twin
-    global _TW, _KIN
-    if "_TW" not in globals():
-        _TW, _KIN = Twin(), Kinematics()
+    global _TWH, _KIN
+    if "_TWH" not in globals():
+        _TWH, _KIN = Twin(scale=2), Kinematics()
     A = np.load(p / "trace.npy"); mt = json.loads((p / "meta.json").read_text())
     cam = from_mujoco(mt["camera"]["pos"], mt["camera"]["quat"])
-    mon = HandMonitor(cam, _TW, _KIN); pred = []
+    mon = HandMonitor(cam, _TWH, _KIN); pred = []
     for f, row in zip(read_video(p / "front.mp4"), A):
         pred.append(mon.tick(f, row[:6]))
     return p.name, mt, np.array(pred), A[:, 6] >= mt["hand_px_min"]

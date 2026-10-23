@@ -1,7 +1,8 @@
 episodes 120: human 52, near 18, robot 50
 reaches into the workspace detected 95/95; delay after the hand entered: median 0.03 s, max 0.57 s
-share of hand-in-workspace frames flagged: median 0.98, min 0.77
-episodes with a false trigger (flagged > 0.5 s away from any hand frame): 2/120
-frames: hand & flagged 7418, hand & not flagged 288, no hand & flagged 287, no hand & not flagged 29987
+share of hand-in-workspace frames flagged: median 0.98, min 0.72
+episodes with a false trigger (flagged > 0.5 s away from any hand frame): 3/120
+frames: hand & flagged 7424, hand & not flagged 282, no hand & flagged 319, no hand & not flagged 29955
   false trigger: ('h9001_0003', 'robot', 92)
   false trigger: ('h9001_0013', 'robot', 104)
+  false trigger: ('h9006_0012', 'robot', 17)

@@ -15,10 +15,11 @@ DARK, YELLOW, BOX, OTHER = 1, 2, 3, 0
 
 
 class Twin:
-    def __init__(self):
+    def __init__(self, scale=1):
+        """scale 2 renders at half resolution (the hand check's arm mask; 4x fewer pixels to read back)."""
         self.m = mujoco.MjModel.from_xml_path(str(ROOT / "sim/scene.xml"))
-        self.d = mujoco.MjData(self.m)
-        self.ren = mujoco.Renderer(self.m, H, W); self.ren.enable_segmentation_rendering()
+        self.d = mujoco.MjData(self.m); self.scale = scale
+        self.ren = mujoco.Renderer(self.m, H // scale, W // scale); self.ren.enable_segmentation_rendering()
         self.cam = self.m.camera("front").id
         self.jm = JointMapping.from_files()
         arm_root = self.m.body_rootid[self.m.body("base").id]
@@ -54,7 +55,7 @@ class Twin:
         self.m.cam_fovy[self.cam] = np.degrees(2 * np.arctan(H / 2 / cam.f))
         mujoco.mj_forward(self.m, self.d)
         self.ren.update_scene(self.d, "front")
-        gid = self.ren.render()[..., 0]
+        gid = self.last_gid = self.ren.render()[..., 0]
         out = np.zeros(gid.shape, np.uint8); ok = gid >= 0; out[ok] = self.lut[gid[ok]]
         return out
 
@@ -63,12 +64,12 @@ def arm_mask(twin, cam, arm_real, margin_px=6):
     """The arm's image region from the twin at the given joint state, dilated by margin_px (decision D3)."""
     import cv2
     twin.set_arm(arm_real); twin.set_boxes({})
-    twin.classes(cam)                                    # sets the camera and renders the scene
-    arm = np.zeros((H, W), np.uint8)
-    gid = twin.ren.render()[..., 0]
-    root = twin.m.body_rootid[twin.m.body("base").id]
-    is_arm = np.zeros(twin.m.ngeom + 1, bool)
-    for g in range(twin.m.ngeom):
-        is_arm[g] = twin.m.body_rootid[twin.m.geom_bodyid[g]] == root
-    ok = gid >= 0; arm[ok] = is_arm[gid[ok]]
+    twin.classes(cam)                                    # sets the camera and renders the scene (once)
+    gid = twin.last_gid
+    if not hasattr(twin, "is_arm"):
+        root = twin.m.body_rootid[twin.m.body("base").id]
+        twin.is_arm = np.array([twin.m.body_rootid[twin.m.geom_bodyid[g]] == root for g in range(twin.m.ngeom)] + [False])
+    arm = twin.is_arm[np.where(gid >= 0, gid, twin.m.ngeom)].astype(np.uint8)
+    if arm.shape != (H, W):
+        arm = cv2.resize(arm, (W, H), interpolation=cv2.INTER_NEAREST)
     return cv2.dilate(arm, np.ones((2 * margin_px + 1,) * 2, np.uint8)).astype(bool)

@@ -310,7 +310,7 @@ Nothing that moved more than 22 mm went undetected.
 **Results** (`scripts/perception_eval.py --check hand`, `notes/phase7_hand_sim.txt`):
 - **Detection:** **95 of 95 reaches** into the workspace caught, median 0.03 s after the hand entered (max 0.57 s).
 - **Coverage:** 98 % of hand-in-workspace frames flagged (median per reach; lowest 77 %).
-- **False triggers:** in **2 of 120 episodes**, none in human turns or near misses. Both are robot turns where a hand had
+- **False triggers:** in **2 of 120 episodes** (3 after the speed-up, see below), none in human turns or near misses. Both are robot turns where a hand had
   just reached in: the call lingers about 3 s after the hand has left. That keeps the robot paused longer, which is the
   safe side.
 - **How it got here:**
@@ -325,7 +325,12 @@ Nothing that moved more than 22 mm went undetected.
 **Open:**
 - Real hands, sleeves and room light; the sim's hard shadows are harsher than the real diffuse light.
 - Tune the arm-mask margin on the recorded clips (D3).
-- **Speed: 91 ms per frame on the Mac** (median; p95 106 ms) for the twin's arm render plus the image steps. That is about
-  3× over the 33 ms budget at 30 Hz. Running at 10 Hz would still pause within about 0.2 s, but it should be sped up
-  before Phase 9: process at half resolution, crop to the workspace's bounding box, and do fewer full-image float
-  operations in the shadow test.
+- **Speed (2026-10-23):** first version 91 ms per frame on the Mac; after the speed-up, **robot turns 18 ms median
+  (p95 26, max 32.5 ms)** and **human turns 11.5 ms (max 21 ms)**, inside the 33 ms budget at 30 Hz. The changes:
+  - the background blend uses `cv2.addWeighted` plus a masked copy instead of boolean indexing (27 → ~1 ms);
+  - the twin's arm mask is rendered once per frame at half resolution (`Twin(scale=2)`), and reused while no joint has
+    moved more than 0.1 units (the arm is frozen during the human turn);
+  - the shadow test runs only on pixels that already changed. Shared with the collapse check, whose results are
+    identical after the change.
+- **Rescore after the speed-up:** 95 of 95 reaches still caught. One extra short false trigger (0.6 s, robot turn), from
+  the blend's different rounding: 3 of 120 episodes, all robot turns.

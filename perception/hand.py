@@ -32,6 +32,7 @@ HIT_FRAMES = 2
 ABSORB_S = 1.0
 FPS = 30
 ARM_MARGIN_PX = 8
+MASK_REUSE_UNITS = 0.1 # re-render the arm mask only when a joint reading moved more than this (LeRobot units)
 SHADE_CHROMA = 0.05    # looser than the stack checks: the moving arm casts hard shadows in sim
 SHADOW_DARKER = 0.85   # a blob darker than the background on >= this share of its pixels could be the arm's shadow
 ENTRY_M, ENTRY_PX = 0.15, 40   # entry band: up to 15 cm outside the two human-side table edges
@@ -61,8 +62,12 @@ class HandMonitor:
         self.ws = workspace_mask(cam); self.band = entry_band(cam)
         self.bg = None; self.hist = []; self.still = np.zeros((H, W), np.int32)
         self.hits = 0; self.present = False; self.track = None; self.valid_hist = []; self.idle = 0
+        self.mask_q = None; self.mask_cache = None
 
     def mask(self, q_real):
+        q = np.asarray(q_real, float)
+        if self.mask_q is not None and np.abs(q - self.mask_q).max() < MASK_REUSE_UNITS:
+            return self.mask_cache                        # arm still (e.g. frozen during the human turn): reuse
         m = arm_mask(self.twin, self.cam, q_real, ARM_MARGIN_PX)
         if self.kin is not None:                          # carried-box zone around the grip point
             tip = self.kin.tip_pos(q_real); c = tip + np.r_[0, 0, 0.01]
@@ -70,6 +75,7 @@ class HandMonitor:
             ring = np.vstack([np.c_[c[0] + JAW_ZONE_M * np.cos(a), c[1] + JAW_ZONE_M * np.sin(a), np.full(16, c[2] + dz)]
                               for dz in (-JAW_ZONE_M, JAW_ZONE_M)])
             m |= _fill((H, W), self.cam.project(ring))
+        self.mask_q, self.mask_cache = q, m
         return m
 
     def tick(self, frame, q_real):
@@ -103,7 +109,7 @@ class HandMonitor:
             if self.present:                              # held still? keep it while foreground stays in its region
                 keep = [i for i in range(1, n) if st[i, cv2.CC_STAT_AREA] > AREA_PX // 2 and self.track[lab == i].any()]
                 if keep and self.idle >= LATCH_S * FPS:   # nothing moved for LATCH_S: take it as scenery
-                    self.bg[self.track] = frame[self.track]; keep = []
+                    np.copyto(self.bg, frame, where=self.track[..., None]); keep = []
                 if keep:
                     self.track = cv2.dilate(np.isin(lab, keep).astype(np.uint8), np.ones((61, 61), np.uint8)).astype(bool)
                 else:
@@ -114,7 +120,7 @@ class HandMonitor:
         # background upkeep: changed-but-still pixels become background after ABSORB_S
         self.still = np.where(fg & ~mot, self.still + 1, 0)
         absorb = self.still >= ABSORB_S * FPS
-        self.bg[absorb] = frame[absorb]; self.still[absorb] = 0
+        np.copyto(self.bg, frame, where=absorb[..., None]); self.still[absorb] = 0
         quiet = ~fg                                       # slow drift (light) where nothing is going on
-        self.bg[quiet] = (0.95 * self.bg[quiet] + 0.05 * frame[quiet]).astype(np.uint8)
+        np.copyto(self.bg, cv2.addWeighted(self.bg, 0.95, frame, 0.05, 0), where=quiet[..., None])
         return self.present

@@ -55,13 +55,16 @@ def stack_region(cam: Camera, pad=0.04, arm_mask=None):
 def change(a, b, thr=DIFF_THR, shadows=False, chroma=None):
     """Pixels that differ by > thr in some channel. shadows=True: drop pure darkening/brightening that keeps the
     colour balance (a shadow cast or removed), since a moved box changes the colour as well."""
-    d = cv2.absdiff(a, b).max(axis=2) > thr
-    if shadows:
-        fa, fb = a.astype(np.float32) + 8, b.astype(np.float32) + 8
-        ca, cb = fa / fa.sum(2, keepdims=True), fb / fb.sum(2, keepdims=True)
-        ratio = fa.sum(2) / fb.sum(2)
-        shade = (np.abs(ca - cb).max(2) < (SHADE_CHROMA if chroma is None else chroma)) & (((ratio > 0.3) & (ratio < 1.0)) | ((ratio > 1.0) & (ratio < 3.3)))
-        d &= ~shade
+    dd = cv2.absdiff(a, b); d = cv2.max(cv2.max(dd[..., 0], dd[..., 1]), dd[..., 2]) > thr
+    if shadows:                                          # only where something changed (same test, far fewer pixels)
+        ys, xs = np.nonzero(d)
+        if len(ys):
+            fa, fb = a[ys, xs].astype(np.float32) + 8, b[ys, xs].astype(np.float32) + 8
+            sa, sb = fa.sum(1, keepdims=True), fb.sum(1, keepdims=True)
+            ratio = (sa / sb)[:, 0]
+            shade = (np.abs(fa / sa - fb / sb).max(1) < (SHADE_CHROMA if chroma is None else chroma)) & \
+                (((ratio > 0.3) & (ratio < 1.0)) | ((ratio > 1.0) & (ratio < 3.3)))
+            d[ys[shade], xs[shade]] = False
     return cv2.morphologyEx(d.astype(np.uint8), cv2.MORPH_OPEN, np.ones((3, 3), np.uint8)).astype(bool)
 
 
