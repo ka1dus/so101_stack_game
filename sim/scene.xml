@@ -76,7 +76,7 @@
     <geom name="supply_mat" size="0.1145 0.096 0.00025" pos="0.1565 0.1724 0.00025" quat="0.894506 0 0 0.447057" type="box" priority="1" friction="0.35" rgba="0.03 0.03 0.03 1"/>
     <geom name="stack_area" size="0.107 0.073 0.0001" pos="0.2304 -0.1071 0.0001" quat="0.896332 0 0 0.443384" type="box" priority="1" friction="0.29" rgba="0.96 0.76 0.12 1"/>
     <geom name="reach_line_tape" size="0.0964578 0.0085 0.0001" pos="0.1823 0.2039 0.0006" quat="0.934185 0 0 -0.356788" type="box" contype="0" conaffinity="0" rgba="0.92 0.92 0.9 1"/>
-    <geom name="backdrop" size="0.13998 0.0025 0.0925" pos="0.109928 -0.12976 0.0925" quat="0.946344 0 0 -0.323161" type="box" rgba="0.02 0.02 0.02 1"/>
+    <geom name="backdrop" size="0.10998 0.0025 0.0925" pos="0.133662 -0.148109 0.0925" quat="0.946344 0 0 -0.323161" type="box" rgba="0.02 0.02 0.02 1"/>
     <site name="stacking_spot" size="0.004 0.0001" pos="0.2058 -0.101 0.0002" type="cylinder" group="1" rgba="0.2 0.2 0.2 1"/>
     <camera name="front" quat="0.549541 0.338238 0.412232 0.643167" pos="0.8485 0.155 0.3953" fovy="40.3173"/>
     <light name="ceiling" pos="0.2 0 1.6" ambient="0.35 0.35 0.35" diffuse="0.55 0.55 0.55" specular="0.05 0.05 0.05"/>

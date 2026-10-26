@@ -52,7 +52,7 @@ CUBE_SLOTS = {"right": ("right", 90), "left": ("left", -90), "up": ("back", 180)
 # APPROX placeholders (not measured yet; visual only unless noted)
 MAT_THICKNESS = 0.0005         # black supply mat: 'negligible' (user, 2026-10-21); 0.5 mm so it renders above the table
 TAPE_THICKNESS = 0.0002        # yellow tape
-BACKDROP = dict(start_from_mount=0.10, wrap=0.0, height=0.185, thickness=0.005)   # measured (user, 2026-10-21): 18.5 cm tall, 28 cm long from 10 cm along the right edge; thickness APPROX
+BACKDROP = dict(start_from_mount=0.16, wrap=0.0, height=0.185, thickness=0.005)   # measured (user, 2026-10-21): 18.5 cm tall, to the right corner; near end trimmed from 10 to ~16 cm along the right edge (2026-10-26, shoulder bracket hit it when panning to the supply); thickness APPROX
 TABLE_TOP_THICKNESS = 0.02
 LEG = 0.025                    # square leg tube
 SHELF_DROP = 0.40              # lower shelf, below the top

@@ -454,3 +454,37 @@ Phase 6 game-rule test set, because game stacks carry the scripted human's place
 - a release zone sized for perception error.
 
 `sim_game.py` now carries these; they need to move into `skill/` and `game/` there.
+
+## 13. Backdrop trimmed at the arm end, 2026-10-26
+
+**Problem (user):** when the arm turned toward the supply, it often hit the backdrop.
+In sim, the back of the shoulder bracket swings into the board's near end, which sat 10 cm along the right edge from the arm's corner, at about 9 cm height.
+- The gap is 6 mm at 40° pan, and the bracket touches from 50° on.
+- The real joint error is about ±1 cm, so contact is expected.
+
+The `front` view needs the board only from about 18 to 32 cm along the edge, up to about 12 cm high, to show an 8-box stack top against black.
+
+**Fix (user, option A):** the near end was cut so the board starts at about 16 cm from the arm's corner.
+- Sim: `build_scene.py` `BACKDROP.start_from_mount` changed from 0.10 to 0.16; `scene.xml` rebuilt.
+- Shoulder, upper arm and lower arm now stay ≥ 39 mm from the board at every pan angle from −60° to 120°.
+- The `front` render changes in 1.2 % of the frame, a strip behind the arm: `notes/img/phase7_backdrop_trim_front.png`.
+- Rejected: a floor-standing board set back 5 cm (easy to bump, and a bigger image change); a cloth backdrop (it ripples and upsets the collapse check).
+
+**Policy check (botmind):** ACT v3 (60k) was run on the 460 states of v3 evaluation wave 1 (seeds 4001–4006, 5001–5002, 3001–3004), using `scripts/b4_bdtrim.ps1`.
+
+| run | ok | flips vs old run 1 |
+|---|---|---|
+| old board, run 1 (`v3_*`) | 417/460 | – |
+| old board, run 2 (`rerun10_*`; noise check, run from a copy of the project with the old scene) | 417/460 | 2 ok→fail, 2 fail→ok |
+| trimmed board (`bdtrim_*`) | 409/460 | 13 ok→fail, 5 fail→ok |
+
+- The drop is small but real: it is well beyond the 4 flips between the two identical old-board runs.
+- It is concentrated in medium boxes onto crooked 4+ stacks: 89 → 82 %.
+- All Section 1 sim criteria are still met:
+  - height 0–3: 96 / 98 / 100 %;
+  - crooked 4+: 76 / 82 / 89 %;
+  - large on small: 86 %.
+- 0 backdrop touches.
+
+**Remedy if wanted:** fine-tune on episodes rendered with the trimmed board, before the Phase 8 real trials.
+The Phase 7 recordings do not depend on the policy, so they can go ahead.
