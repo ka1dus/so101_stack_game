@@ -1,25 +1,25 @@
 samples 400; slot-frames 6400
-slot occupancy: TP 3700  FN 19  TN 2672  FP 9
-dark share, occupied slots: max 0.841  p99 0.428; empty slots: min 0.318  p1 0.668
-turn-level 'which slot was taken': 396/400 correct
-with an 'ask the player' band (0.3, 0.7) on the dark share: plain sure, correct 13, plain unsure 11, printed sure, correct 350, printed unsure 26
-  error: ('s7001_0042', 'before', 2, 0.489)
-  error: ('s7001_0042', 'before', 7, 0.318)
-  error: ('s7001_0042', 'after', 2, 0.489)
-  error: ('s7001_0042', 'after', 7, 0.318)
-  error: ('s7001_0073', 'before', 6, 0.522)
+slot occupancy: TP 3697  FN 22  TN 2681  FP 0
+dark share, occupied slots: max 0.851  p99 0.428; empty slots: min 0.616  p1 0.955
+turn-level 'which slot was taken': 394/400 correct
+with an 'ask the player' band (0.3, 0.7) on the dark share: plain sure, correct 13, plain unsure 11, printed sure, correct 360, printed unsure 16
+  error: ('s7001_0047', 'before', 3, 0.586)
+  error: ('s7001_0047', 'after', 3, 0.579)
+  error: ('s7001_0073', 'before', 6, 0.517)
   error: ('s7001_0087', 'before', 6, 0.515)
-  error: ('s7002_0009', 'before', 3, 0.476)
-  error: ('s7002_0009', 'after', 3, 0.476)
-  error: ('s7002_0094', 'before', 2, 0.366)
-  error: ('s7002_0094', 'before', 3, 0.53)
-  error: ('s7002_0094', 'before', 6, 0.506)
-  error: ('s7002_0094', 'after', 2, 0.363)
-  error: ('s7002_0094', 'after', 3, 0.53)
-  error: ('s7003_0030', 'before', 6, 0.534)
-  error: ('s7003_0030', 'after', 6, 0.522)
-  error: ('s7003_0051', 'before', 5, 0.54)
-  error: ('s7003_0051', 'after', 5, 0.54)
-  error: ('s7004_0020', 'before', 4, 0.721)
-  error: ('s7004_0020', 'before', 8, 0.841)
-  error: ('s7004_0020', 'after', 4, 0.717)
+  error: ('s7002_0095', 'before', 3, 0.5)
+  error: ('s7002_0095', 'before', 5, 0.539)
+  error: ('s7002_0095', 'after', 5, 0.535)
+  error: ('s7003_0030', 'before', 6, 0.594)
+  error: ('s7003_0030', 'before', 8, 0.518)
+  error: ('s7003_0030', 'after', 6, 0.582)
+  error: ('s7003_0051', 'before', 5, 0.562)
+  error: ('s7003_0051', 'after', 5, 0.562)
+  error: ('s7004_0020', 'before', 8, 0.851)
+  error: ('s7004_0020', 'after', 8, 0.847)
+  error: ('s7004_0027', 'before', 3, 0.588)
+  error: ('s7004_0027', 'before', 5, 0.539)
+  error: ('s7004_0027', 'before', 8, 0.613)
+  error: ('s7004_0027', 'after', 3, 0.601)
+  error: ('s7004_0027', 'after', 8, 0.617)
+  error: ('s7004_0060', 'before', 5, 0.514)

@@ -21,6 +21,9 @@ DARK_V = 60
 ROI_PAD_PX = 25
 FUZZ_K = np.ones((31, 31), np.uint8)   # arm/backdrop excluded with a 15 px margin (their twin outlines are approximate)        # around the projected table top (covers ~1 cm / 2 deg of drift)
 LAY = yaml.safe_load((ROOT / "sim/assets/layout.yaml").read_text())
+PRIOR_W = 5e-4         # weak pull toward the nominal calibration per (deg)^2 and per (cm)^2: the mask cost is nearly
+                       # flat along the viewing direction (2026-10-26: one real image refit to 9 mm / 0.4 deg and to
+                       # 27 mm / 1.5 deg at the same cost, 0.1166 vs 0.1163); 27 mm / 1.5 deg now costs +0.005
 
 
 def image_classes(bgr):
@@ -55,7 +58,8 @@ def refine(ref_bgr, twin: Twin, box_poses, arm_real, cam=None):
         bl = lambda x: cv2.GaussianBlur(x, (0, 0), s)
         rd, ry = bl((c == DARK).astype(np.float32)), bl((c == YELLOW).astype(np.float32))
         w = roi * (1 - cv2.dilate((c == FUZZY).astype(np.uint8), FUZZ_K).astype(np.float32))   # skip arm and backdrop
-        return 1 - 0.5 * (_dice(rd, bl(dark), w) + _dice(ry, bl(yellow), w))
+        return 1 - 0.5 * (_dice(rd, bl(dark), w) + _dice(ry, bl(yellow), w)) + \
+            PRIOR_W * (np.sum(np.square(p[:3])) + np.sum(np.square(np.asarray(p[3:]) / 10)))
     p = np.zeros(6); c0 = cost(p, 2.0)
     for s, step in ((6.0, (1.0, 1.0, 1.0, 10, 10, 10)), (2.0, (0.3, 0.3, 0.3, 3, 3, 3))):
         simplex = np.vstack([p, p + np.diag(step)])
