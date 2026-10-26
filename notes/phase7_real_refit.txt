@@ -1,0 +1,8 @@
+front_cam_frame.png: refit moved [-10.0, 7.2, 5.1] mm / [0.78, -0.617, 0.103] deg; mask cost 0.0452 -> 0.0436
+  picked corners: nominal rms 2.2 px (max 4.3); refit rms 2.8 px (max 4.8)
+  from 4 knocked-off starts (+-1.5 deg, +-1 cm): worst corner differs from the refit by 1.2, 4.6, 2.3, 3.1 px
+  overlay: notes/img/phase7_real_refit_front_cam_frame.png
+front_cam_stack3.png: refit moved [1.1, 11.4, -2.2] mm / [-0.243, -0.78, 0.82] deg; mask cost 0.0835 -> 0.0798
+  picked corners: nominal rms 2.2 px (max 4.3); refit rms 3.2 px (max 3.8)
+  from 4 knocked-off starts (+-1.5 deg, +-1 cm): worst corner differs from the refit by 9.2, 1.9, 1.8, 1.5 px
+  overlay: notes/img/phase7_real_refit_front_cam_stack3.png

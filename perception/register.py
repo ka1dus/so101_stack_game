@@ -1,7 +1,9 @@
 """Refine the `front` camera pose from a reference frame (game setup, arm at home), render-and-compare with the twin.
 
-The supply mat, backdrop and black arm are the dark regions, the stack area the yellow one; their image masks are
-compared with the twin's rendered class masks (soft Dice, inside the table region) and the 6-DOF camera pose is
+The supply mat is the dark region and the stack area the yellow one (the arm and backdrop are left out: their twin
+outlines are approximate, 2026-10-24 real-frame test); their image masks are
+compared with the twin's rendered class masks (soft Dice, only over the table top: the real room has dark walls,
+banners and carpet that the twin does not model, 2026-10-24 real-frame test) and the 6-DOF camera pose is
 adjusted from the nominal calibration (Nelder-Mead, coarse then fine blur). Catches the tripod drift the policy's
 randomization tolerates but fixed image polygons do not. The boxes in the reference are rendered where the template
 puts them, so they are not mistaken for mat.
@@ -10,10 +12,15 @@ import cv2
 import numpy as np
 from scipy.optimize import minimize
 
-from .camera import Camera, H, W
-from .twin import BOX, DARK, YELLOW, Twin
+import yaml
+
+from .camera import ROOT, Camera, H, W
+from .twin import DARK, FUZZY, YELLOW, Twin
 
 DARK_V = 60
+ROI_PAD_PX = 25
+FUZZ_K = np.ones((31, 31), np.uint8)   # arm/backdrop excluded with a 15 px margin (their twin outlines are approximate)        # around the projected table top (covers ~1 cm / 2 deg of drift)
+LAY = yaml.safe_load((ROOT / "sim/assets/layout.yaml").read_text())
 
 
 def image_classes(bgr):
@@ -39,14 +46,16 @@ def refine(ref_bgr, twin: Twin, box_poses, arm_real, cam=None):
     cam = cam or Camera()
     twin.set_arm(arm_real); twin.set_boxes(box_poses)
     dark, yellow = image_classes(ref_bgr)
-    roi0 = twin.classes(cam) > 0                              # anything but "other"; widened below
-    roi = cv2.dilate(roi0.astype(np.uint8), np.ones((81, 81), np.uint8)).astype(np.float32)
-    roi[: int(H * 0.25)] *= 0.0 if roi0[: int(H * 0.25)].mean() < 0.01 else 1.0
+    T = np.array(list(LAY["table"]["corners"].values()), float); c = T.mean(0); T = T[np.argsort(np.arctan2(*(T - c).T[::-1]))]
+    roi = np.zeros((H, W), np.uint8)
+    cv2.fillConvexPoly(roi, np.round(cam.project(np.c_[T, np.zeros(4)])).astype(np.int32), 1)
+    roi = cv2.dilate(roi, np.ones((2 * ROI_PAD_PX + 1,) * 2, np.uint8)).astype(np.float32)
     def cost(p, s):
         c = twin.classes(_perturb(cam, p))
         bl = lambda x: cv2.GaussianBlur(x, (0, 0), s)
         rd, ry = bl((c == DARK).astype(np.float32)), bl((c == YELLOW).astype(np.float32))
-        return 1 - 0.5 * (_dice(rd, bl(dark), roi) + _dice(ry, bl(yellow), roi))
+        w = roi * (1 - cv2.dilate((c == FUZZY).astype(np.uint8), FUZZ_K).astype(np.float32))   # skip arm and backdrop
+        return 1 - 0.5 * (_dice(rd, bl(dark), w) + _dice(ry, bl(yellow), w))
     p = np.zeros(6); c0 = cost(p, 2.0)
     for s, step in ((6.0, (1.0, 1.0, 1.0, 10, 10, 10)), (2.0, (0.3, 0.3, 0.3, 3, 3, 3))):
         simplex = np.vstack([p, p + np.diag(step)])

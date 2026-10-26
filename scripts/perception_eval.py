@@ -170,7 +170,7 @@ def eval_collapse(dirs, workers=8, threshold_mm=15.0):
         conf[(truth, pred)] += 1; by[(r["kind"], truth, pred)] += 1
         if truth != pred:
             mist.append((r["name"], r["kind"], f"h{r['height']}", "truth" if truth else "false call", why,
-                         dict(shift=r["shift_mm"], score=r["shift_score"], outside=r["outside"], on_top_iou=r["on_top_iou"]),
+                         dict(shift=r["shift_mm"], score=r["shift_score"], outside=r["outside"], on_top_cover=r["on_top_cover"]),
                          f"top_moved {r['top_moved']} old_move {r['old_move']}"))
     lines += [f"samples {len(rows)}; truth collapse (game rule) = a stack box on the table (the new box included), or the "
               f"top moved > {threshold_mm:.0f} mm",

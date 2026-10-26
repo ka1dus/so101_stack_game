@@ -1,6 +1,6 @@
 """The sim twin as a perception tool (decisions D3 and camera refinement): render class masks of the real scene from a
-given `front` camera pose and arm joint state. Classes: dark (supply mat, backdrop, black arm), yellow (stack area),
-box, other."""
+given `front` camera pose and arm joint state. Classes: dark (supply mat), yellow (stack area), fuzzy (the black arm
+and the backdrop: dark too, but modelled less exactly), box, other."""
 import sys
 
 import mujoco
@@ -11,7 +11,7 @@ from .camera import ROOT, Camera, H, W
 sys.path.insert(0, str(ROOT / "scripts"))
 from joint_mapping import JOINT_NAMES, JointMapping  # noqa: E402
 
-DARK, YELLOW, BOX, OTHER = 1, 2, 3, 0
+DARK, YELLOW, BOX, OTHER, FUZZY = 1, 2, 3, 0, 4    # FUZZY: dark parts the twin models only roughly (arm, backdrop)
 
 
 class Twin:
@@ -26,8 +26,10 @@ class Twin:
         lut = np.full(self.m.ngeom + 1, OTHER, np.uint8)
         for g in range(self.m.ngeom):
             b = self.m.geom_bodyid[g]; name = self.m.geom(g).name
-            if self.m.body_rootid[b] == arm_root or name in ("supply_mat", "backdrop"):
+            if name == "supply_mat":
                 lut[g] = DARK
+            elif self.m.body_rootid[b] == arm_root or name == "backdrop":
+                lut[g] = FUZZY
             elif name == "stack_area":
                 lut[g] = YELLOW
             elif self.m.body(b).name.startswith("box"):

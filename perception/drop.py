@@ -24,13 +24,13 @@ from joint_mapping import JointMapping  # noqa: E402
 SLIP_UNITS, SLIP_TICKS = 3.0, 3
 OPEN_UNITS = 4.0
 LIFT_M = 0.03                 # carrying starts once the tips are this far above where the jaws closed on the box
-BLOCKED_UNITS = 5.0           # reading this far above a "close" command = jaws stopped by something
+BLOCKED_UNITS = 5.0           # reading this far above the command = jaws stopped by something (the policy's "close"
+                              # command is not always as low as the scripted expert's 0; sim_game 2026-10-25)
 STEADY_TICKS, STEADY_UNITS = 5, 0.5   # ... and steady: no more change than this over these ticks
 ZONE_R = 0.04                 # release zone: tips within this of the stack top centre (xy) ...
 ZONE_Z = (-0.01, 0.045)       # ... and this far above/below the top face (tips sit near the box's bottom)
 SLIP_ZONE_TOP = 0.07          # a box slipping out right over the stack (tips < 7 cm up) falls onto it: hand over to
                               # the collapse check instead of calling a drop
-CLOSED_CMD = 5.0              # gripper command at or below this = "close"
 
 
 class Kinematics:
@@ -67,14 +67,15 @@ class DropMonitor:
         g = float(q_real[5]); tip = self.kin.tip_pos(q_real)
         if not self.carrying:
             self.hist.append(g)
-            blocked = g_cmd <= CLOSED_CMD and g > g_cmd + BLOCKED_UNITS and len(self.hist) >= STEADY_TICKS \
+            blocked = g > g_cmd + BLOCKED_UNITS and len(self.hist) >= STEADY_TICKS \
                 and np.ptp(self.hist[-STEADY_TICKS:]) < STEADY_UNITS
             if blocked:
-                if self.close_z is None:
-                    self.close_z, self.hold = tip[2], float(np.median(self.hist[-STEADY_TICKS:]))
+                lvl = float(np.median(self.hist[-STEADY_TICKS:]))
+                if self.close_z is None or abs(lvl - self.hold) > 1.5:      # new blocked level (e.g. an open jaw
+                    self.close_z, self.hold = tip[2], lvl                   # resting on a neighbour, then the grasp)
                 if tip[2] > self.close_z + LIFT_M:
                     self.carrying = True
-            elif g_cmd > CLOSED_CMD or g < g_cmd + BLOCKED_UNITS:
+            elif g < g_cmd + BLOCKED_UNITS:
                 self.close_z = None; self.hold = None
             return None
         if g < self.hold - SLIP_UNITS:

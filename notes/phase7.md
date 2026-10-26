@@ -1,7 +1,8 @@
 # Phase 7: Classical perception (plan, in progress)
 
 Status 2026-10-23: D1–D3 approved. Sim test set built (§6); camera refit and supply-slot check work in sim (§7).
-`collapse_check()` (§8), `drop_check()` (§9) and `hand_in_workspace()` (§10) built and scored in sim. Waiting on the user's recording session (§4).
+`collapse_check()` (§8), `drop_check()` (§9) and `hand_in_workspace()` (§10) built and scored in sim; camera refit
+checked on the real frames (§11); `sim_game.py` with perception in the loop runs end to end (§12). Waiting on the user's recording session (§4).
 
 ## 1. What the inputs allow
 - **`inputs/videos/stack_collapse.mp4`** (301 frames) and **`human_turn.mp4`** (451 frames): 640×480, 30 fps, recorded
@@ -334,3 +335,68 @@ Nothing that moved more than 22 mm went undetected.
     identical after the change.
 - **Rescore after the speed-up:** 95 of 95 reaches still caught. One extra short false trigger (0.6 s, robot turn), from
   the blend's different rounding: 3 of 120 episodes, all robot turns.
+
+## 11. Camera refit on the real frames, 2026-10-25 (`scripts/phase7_real_refit.py`, `notes/phase7_real_refit.txt`)
+**Frames:** the real frames `front_cam_frame.png` (empty) and `front_cam_stack3.png` (3-box stack), both from
+21 Oct with the backdrop in place. They predate the 2 cm mat expansion and the reach tape, so the twin for this test
+uses the pre-expansion mat and no tape (in memory only).
+
+**Checks:**
+- the refit against the hand-picked calibration points (undistorted);
+- convergence from 4 starting cameras knocked ±1 cm / ±1.5° off.
+
+**Iterations:**
+
+| refit version | rms vs picked corners | from knocked-off starts |
+|---|---|---|
+| sim-tuned (dark + yellow, wide region) | ≈ 10 px; the camera moved 4–7 cm | — |
+| table top only | 4.8 / 5.9 px | within 4 px |
+| table top, mat + yellow only (final) | **2.8 / 3.2 px** | within 1–5 px in 7 of 8 starts (one 9 px, on the 3-box frame where the stack hides part of the yellow area) |
+
+The hand calibration itself gives 2.2 px. The two fixes:
+- **Compare only over the table top:** the real room has a large dark banner and dark carpet that the sim doesn't
+  model, and they pulled the fit.
+- **Leave the arm and backdrop out** (now class FUZZY in `perception/twin.py`): their twin outlines are approximate.
+  The fit uses only the supply mat and the yellow area, the features the calibration was built on.
+
+**Sim re-check with the final version** (400 test-set samples):
+- refit error median 2.2 px (was 1.3 on the first 20 samples), p95 6.9 px; 13 samples over 8 px, max 29 px;
+- slot check 396/400 turns correct (was 391), still with no confident wrong answer;
+- collapse check unchanged.
+
+**Rejected:** a "too large a move → use the nominal calibration" guard made the sim errors worse. Rotation and
+position trade off, so a large refit move is often right.
+
+**Open:** once the user records the Phase 7 reference frames of the current setup, repeat this with the expanded mat
+and the tape.
+
+## 12. Full games in sim with perception in the loop (`scripts/sim_game.py`), 2026-10-25
+**Setup:**
+- ACT v3 against a scripted human (human-like placement error, 5 % careless placements).
+- The controller sees only rendered `front` frames, joint readings and the gripper command. Per turn it runs:
+  - the camera refit at game start;
+  - the slot check, which decides the new level's type (D1);
+  - `drop_check()` on robot turns, which also ends the skill: release seen, then the tips rise 3 cm;
+  - `collapse_check()`, which calls the turn.
+- The sim's exact state judges every turn by the game rule, so each call is scored.
+- The checkpoint is copied to `data/policies/act_v3_ft_060000` (file copy from botmind).
+
+**Speed:** on the Mac CPU the policy takes 745 ms per step, so a game takes about 27 min. A batch of games needs a
+GPU, either the Mac's own (MPS) or botmind; ask the user first.
+
+**Plumbing game** (1 game, 6 turns, 5 boxes stacked):
+- the slot check was right on 6/6 turns;
+- turn calls 5/6 correct;
+- one false loss call on a robot turn: "new box not lying on the stack", while the box was on the stack.
+
+**Two bugs found and fixed:**
+- **The overlap score:** a robot placement nudges the stack a few mm, which widened the changed area and dragged down
+  the box-on-top overlap score. It's replaced by a "cover" score: how much of the best-fitting box outline on the old
+  top changed, cut at 0.35 (lowest on standing stacks 0.43). Collapse test set unchanged at 112/126 caught, 0 false
+  calls.
+- **Drop monitor arming:** the drop monitor never armed in 2 of 3 robot turns, because the policy's "close" command
+  isn't as low as the expert's 0, so the skill ran to its 25 s timeout. Arming now uses "the reading stays ≥ 5 units
+  above the command and steady", and the hold level is re-taken whenever that level changes (an open jaw resting on a
+  neighbour box had been taken as the hold). Drop test set back to 0 false calls, 223/233 drops called.
+
+**Next:** a batch of games (e.g. 20) on a GPU, then compare per turn and per game.

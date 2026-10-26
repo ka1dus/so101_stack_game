@@ -108,15 +108,17 @@ def features(cam, ref, before, frames, z_top, new_h, land_idx=18, col_r=0.065, a
         gone = float((change(frames[0], land) & rel_mask).sum() / max(1, rel_mask.sum()))
         if gone < RELEASE_GONE:                          # its release pixels barely changed: it did not slide away
             rel_mm = 0.0
-    on_top_iou = None
+    on_top_iou = on_top_cover = None
     if new_dims is not None:                            # does the turn's change look like one box lying on the old top?
         on_top_iou, _, _ = fit_box(cam, ch, z_top, new_dims, xy)
+        on_top_cover, _, _ = fit_box(cam, ch, z_top, new_dims, xy, score="cover")
     return dict(
         vanished=int((fg_b & ~fg_a).sum()),                 # was stack, now background: something moved away
         outside=int((ch & ~allowed).sum()),                  # changed where a clean placement changes nothing
         inside=int((ch & allowed).sum()),
         settle=int((change(frames[land_idx], after, shadows=True) & roi).sum()),   # still changing after the box landed
         on_top_iou=None if on_top_iou is None else round(on_top_iou, 3),
+        on_top_cover=None if on_top_cover is None else round(on_top_cover, 3),
         top_xy=np.round(xy, 4).tolist(), shift_mm=round(shift_mm, 1), shift_score=round(score, 3),
         release_mm=round(rel_mm, 1), release_score=round(rel_score, 3),
         release_gone=round(gone, 3) if new_h else 0.0,
@@ -131,9 +133,10 @@ def box_hull(cam, xy, yaw, z_bottom, dims):
     return cv2.convexHull(cam.project(np.array(pts)).astype(np.float32)).reshape(-1, 2)
 
 
-def fit_box(cam, mask, z_bottom, dims, xy0, r=0.05):
-    """Best IoU of a flat box of `dims` resting at height z_bottom (xy within r of xy0, any yaw) with `mask`.
-    Coarse grid then Nelder-Mead. Returns (iou, xy, yaw)."""
+def fit_box(cam, mask, z_bottom, dims, xy0, r=0.05, score="iou"):
+    """Best fit of a flat box of `dims` resting at height z_bottom (xy within r of xy0, any yaw) to `mask`.
+    score "iou": intersection over union; "cover": share of the box outline that changed (insensitive to other
+    changes, e.g. the robot nudging the stack a few mm). Coarse grid then Nelder-Mead. Returns (score, xy, yaw)."""
     from scipy.optimize import minimize
     ys, xs = np.nonzero(mask)
     if len(ys) < 30:
@@ -143,7 +146,8 @@ def fit_box(cam, mask, z_bottom, dims, xy0, r=0.05):
     canvas = np.zeros(m.shape, np.uint8)
     def iou(p):
         canvas[:] = 0; cv2.fillConvexPoly(canvas, np.round(box_hull(cam, p[:2], p[2], z_bottom, dims) - off).astype(np.int32), 1)
-        inter = (canvas.astype(bool) & m).sum(); return inter / (area + canvas.sum() - inter + 1e-6)
+        c = canvas.astype(bool); inter = (c & m).sum()
+        return inter / (c.sum() + 1e-6) if score == "cover" else inter / (area + c.sum() - inter + 1e-6)
     best = (-1, None)
     for dx in np.linspace(-r, r, 9):
         for dy in np.linspace(-r, r, 9):
@@ -181,7 +185,8 @@ def top_shift(cam, f0, f1, top_mask, z, search=50, masked=True):
 # set from the sim test set with a margin over the largest value seen on standing stacks (notes/phase7.md)
 TOP_MOVE_MM = 18.0     # game rule 15 mm + 3 mm for the estimate's error (sim: median 1.2 mm), on the no-false-call side
 OUTSIDE_PX = 600       # changed pixels outside the new box's column (lower boxes moved, a box on the table); sim max on standing stacks 491
-ON_TOP_MIN_IOU = 0.3   # the turn's change must look like one box lying on the old top; sim min on standing stacks 0.38
+ON_TOP_MIN_COVER = 0.35   # the best box outline on the old top must be at least this much changed; sim min on standing
+                          # stacks 0.43 (IoU was used first; a robot nudging the stack lowered it, sim_game 2026-10-25)
 RELEASE_MM = 11.0      # the new box sliding this far between release and the start of the settle window
 RELEASE_GONE = 0.45    # ...and this share of its release-time pixels changed (sim: falls >= 0.50, one wobble 0.35)
 
@@ -197,6 +202,6 @@ def collapse_check(f):
         reasons.append("changed below/beside the new box")
     if f.get("release_mm", 0.0) > RELEASE_MM:
         reasons.append(f"new box slid {f['release_mm']:.0f} mm after release")
-    if f.get("on_top_iou") is not None and f["on_top_iou"] < ON_TOP_MIN_IOU:
+    if f.get("on_top_cover") is not None and f["on_top_cover"] < ON_TOP_MIN_COVER:
         reasons.append("new box not lying on the stack")
     return bool(reasons), reasons
