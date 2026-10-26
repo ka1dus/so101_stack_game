@@ -86,9 +86,12 @@ def top_xy(cam, fg, z_top, band=30):
     return backproject(cam, np.c_[xs[sel], ys[sel]], z_top).mean(0)
 
 
-def features(cam, ref, before, frames, z_top, new_h, land_idx=18, col_r=0.065, arm_mask=None, new_dims=None):
+def features(cam, ref, before, frames, z_top, new_h, land_idx=18, col_r=0.065, arm_mask=None, new_dims=None, arm_frames=None):
     """Collapse cues for one turn (counts in pixels). frames: the settle window after the release.
-    z_top: old stack top height (from the types per level, decision D1); new_h: the new box's height (0: no box)."""
+    z_top: old stack top height (from the types per level, decision D1); new_h: the new box's height (0: no box).
+    arm_frames (robot turns): [(frame, arm mask), ...] at the release and at the end of the skill, the arm still in
+    view and masked out; the new box is tracked through them to the settle window's last frame, since a box can slide
+    off or be knocked while the arm retracts and returns home."""
     roi = stack_region(cam, arm_mask=arm_mask); after = frames[-1]
     fg_b, fg_a = change(before, ref) & roi, change(after, ref) & roi
     xy = top_xy(cam, fg_b, z_top) if z_top > 0.005 else None
@@ -108,6 +111,23 @@ def features(cam, ref, before, frames, z_top, new_h, land_idx=18, col_r=0.065, a
         gone = float((change(frames[0], land) & rel_mask).sum() / max(1, rel_mask.sum()))
         if gone < RELEASE_GONE:                          # its release pixels barely changed: it did not slide away
             rel_mm = 0.0
+    # silhouette top edge before vs after (rows grow downward): a box landing on top raises it by ~its own height
+    def top_row(fg):
+        ys = np.nonzero(fg)[0]
+        return float(np.percentile(ys, 0.5)) if len(ys) > 50 else None
+    rb, ra = top_row(fg_b), top_row(fg_a)
+    rise = (rb - ra) if (rb is not None and ra is not None) else (H - ra if ra is not None else 0.0)
+    exp_rise = float(np.diff(cam.project(np.array([[*xy, z_top], [*xy, z_top + new_h]]))[:, 1])[0] * -1) if new_h else 0.0
+    arm_shift, arm_score = 0.0, 1.0
+    if new_h and arm_frames:
+        seq = list(arm_frames) + [(after, np.zeros_like(roi))]
+        for (f0, m0), (f1, m1) in zip(seq[:-1], seq[1:]):
+            tm = change(f0, before) & allowed & roi & ~m0 & ~m1
+            mm, sc = top_shift(cam, f0, f1, tm, z_top + new_h / 2)
+            gone = float((change(f0, f1, shadows=True) & tm).sum() / max(1, tm.sum()))
+            if gone < RELEASE_GONE:                      # its pixels barely changed: it did not move
+                mm = 0.0
+            arm_shift, arm_score = max(arm_shift, mm), min(arm_score, sc)
     on_top_iou = on_top_cover = None
     if new_dims is not None:                            # does the turn's change look like one box lying on the old top?
         on_top_iou, _, _ = fit_box(cam, ch, z_top, new_dims, xy)
@@ -119,8 +139,10 @@ def features(cam, ref, before, frames, z_top, new_h, land_idx=18, col_r=0.065, a
         settle=int((change(frames[land_idx], after, shadows=True) & roi).sum()),   # still changing after the box landed
         on_top_iou=None if on_top_iou is None else round(on_top_iou, 3),
         on_top_cover=None if on_top_cover is None else round(on_top_cover, 3),
+        top_rise_px=round(float(rise), 1), top_rise_expected_px=round(exp_rise, 1),
         top_xy=np.round(xy, 4).tolist(), shift_mm=round(shift_mm, 1), shift_score=round(score, 3),
         release_mm=round(rel_mm, 1), release_score=round(rel_score, 3),
+        arm_shift_mm=round(arm_shift, 1), arm_shift_score=round(arm_score, 3),
         release_gone=round(gone, 3) if new_h else 0.0,
         fg_before=int(fg_b.sum()), fg_after=int(fg_a.sum()))
 
@@ -187,6 +209,9 @@ TOP_MOVE_MM = 18.0     # game rule 15 mm + 3 mm for the estimate's error (sim: m
 OUTSIDE_PX = 600       # changed pixels outside the new box's column (lower boxes moved, a box on the table); sim max on standing stacks 491
 ON_TOP_MIN_COVER = 0.35   # the best box outline on the old top must be at least this much changed; sim min on standing
                           # stacks 0.43 (IoU was used first; a robot nudging the stack lowered it, sim_game 2026-10-25)
+TOP_RISE_SHARE = 0.5      # ...unless the silhouette top edge rose by at least half a box height: a box landing squarely
+                          # on an identical box changes few pixels (same print), sim_game 2026-10-26
+TOP_DROP_PX = 5.0         # the silhouette top edge sinking this far: a box came off the top (sim: standing >= -1 px)
 RELEASE_MM = 11.0      # the new box sliding this far between release and the start of the settle window
 RELEASE_GONE = 0.45    # ...and this share of its release-time pixels changed (sim: falls >= 0.50, one wobble 0.35)
 
@@ -200,8 +225,14 @@ def collapse_check(f):
         reasons.append(f"top moved {f['shift_mm']:.0f} mm")
     if f["outside"] > OUTSIDE_PX:
         reasons.append("changed below/beside the new box")
+    if f.get("top_rise_px", 0.0) < -TOP_DROP_PX:
+        reasons.append(f"stack top {-f['top_rise_px']:.0f} px lower than before")
+    if f.get("arm_shift_mm", 0.0) > RELEASE_MM or f.get("arm_shift_score", 1.0) < 0.5:
+        reasons.append(f"new box moved {f['arm_shift_mm']:.0f} mm while the arm left" if f.get("arm_shift_score", 1.0) >= 0.5
+                       else "new box gone while the arm left")
     if f.get("release_mm", 0.0) > RELEASE_MM:
         reasons.append(f"new box slid {f['release_mm']:.0f} mm after release")
-    if f.get("on_top_cover") is not None and f["on_top_cover"] < ON_TOP_MIN_COVER:
+    if f.get("on_top_cover") is not None and f["on_top_cover"] < ON_TOP_MIN_COVER \
+            and f.get("top_rise_px", 0.0) < TOP_RISE_SHARE * f.get("top_rise_expected_px", 0.0):
         reasons.append("new box not lying on the stack")
     return bool(reasons), reasons

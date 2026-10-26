@@ -2,7 +2,8 @@
 
 Status 2026-10-23: D1–D3 approved. Sim test set built (§6); camera refit and supply-slot check work in sim (§7).
 `collapse_check()` (§8), `drop_check()` (§9) and `hand_in_workspace()` (§10) built and scored in sim; camera refit
-checked on the real frames (§11); `sim_game.py` with perception in the loop runs end to end (§12). Waiting on the user's recording session (§4).
+checked on the real frames (§11); full sim games with perception in the loop (§12): 139/140 turn calls correct,
+all 11 true losses caught, 1 false call, 19/20 games called right. Waiting on the user's recording session (§4).
 
 ## 1. What the inputs allow
 - **`inputs/videos/stack_collapse.mp4`** (301 frames) and **`human_turn.mp4`** (451 frames): 640×480, 30 fps, recorded
@@ -399,4 +400,57 @@ GPU, either the Mac's own (MPS) or botmind; ask the user first.
   above the command and steady", and the hold level is re-taken whenever that level changes (an open jaw resting on a
   neighbour box had been taken as the hold). Drop test set back to 0 false calls, 223/233 drops called.
 
-**Next:** a batch of games (e.g. 20) on a GPU, then compare per turn and per game.
+### 12b. Batches of 20 games on botmind's GPU (2026-10-26)
+**Setup:** 4 detached jobs × 5 games, seeds 12001–12004; each batch takes about 6 min. The same seeds are reused every
+time, so each batch compares directly with the last. Results are in `data/sim_game/b4*`.
+
+| batch | change | turn calls correct | true losses caught | false loss calls | games called right | robot turns lost | full 8-box games |
+|---|---|---|---|---|---|---|---|
+| 1 | as built | 130/132 | 15/15 | 2/117 | 18/20 | 13/65 | 3 |
+| 2 | release zone 6 cm; robot retracts itself, lifts before going home | 135/138 | 9/11 | 1/127 | 17/20 | 9/68 | 8 |
+| 3 | skill stops 3.5 cm up or 1.5 s after the release | 134/138 | 8/11 | 1/127 | 16/20 | 9/68 | 8 |
+| 4 | new box tracked from release through the retract (arm masked) | 135/138 | 9/11 | 1/127 | 17/20 | 7/67 | 8 |
+| **5** | "stack top dropped" cue; truth bookkeeping fix | **139/140** | **11/11** | **1/129** | **19/20** | 7/68 | 8 |
+
+The slot check was right on every turn in every batch (asked 1–4 times per batch).
+
+**What each fix addressed:**
+- **Batch 1:**
+  - **Release zone too tight:** the drop monitor's release zone (4 cm) was narrower than the error in the perceived
+    stack top on crooked stacks, so 8 planned releases were called "drop: open".
+  - **Jerk home knocked stacks:** the controller then drove the arm home with the jaws still around the box, knocking
+    stacks over. Several of the robot's "losses" were caused by the controller.
+  - **Fixes:** release zone 6 cm; after a release the policy keeps control for its own straight-up retract; after a
+    drop call or a timeout the jaws lift 6 cm straight up first.
+- **Batch 2:** requiring a 5 cm retract caused 20 timeouts, because the policy's retract often stops short and an idle
+  policy wanders and knocks the stack. The skill now ends at 3.5 cm up or 1.5 s after the release (3 timeouts left).
+- **Batches 3–4:** the remaining misses happened between the release and the arm getting home, and the settle window
+  only starts at home.
+  - **Release-to-home tracking:** the new box is now tracked through frames at the release and at the end of the
+    skill, with the arm masked by the twin.
+  - **Top-edge drop:** a "stack top more than 5 px lower than before" cue catches a box coming off the top; standing
+    stacks in the sim test set never drop more than 1 px.
+  - **Truth fix:** when the robot also knocks a supply box, the placed box is the moved box that ends highest.
+  - **Test-set check:** the collapse test set is unchanged at 112/126 caught, 0 false calls.
+- **Other fixes on the way:**
+  - the box-on-top "cover" score (§12);
+  - a "top edge rose by half a box" exception: a box landing squarely on an identical box changes few pixels, because
+    they share the same print.
+
+**Remaining false call:** a robot turn at height 5 where the new box landed squarely on an identical box. The stack's
+top edge barely moved in the image, because the box sat slightly nearer the camera. A single camera can't tell this
+apart from a box that never arrived. Candidates:
+- check that the wrist camera sees a box under the jaws at the release;
+- compare the drop monitor's release height with the expected top;
+- the sim-trained segmenter (method b).
+
+**Robot performance in games:** the robot lost 7 of 68 turns (90 % placement success). That's below the 97 % on the
+Phase 6 game-rule test set, because game stacks carry the scripted human's placement errors.
+
+**Controller design lessons for Phase 9:**
+- the skill's termination rule;
+- the lift-before-home motion;
+- frames buffered from the release, with the arm masked;
+- a release zone sized for perception error.
+
+`sim_game.py` now carries these; they need to move into `skill/` and `game/` there.

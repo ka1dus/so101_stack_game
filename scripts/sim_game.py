@@ -47,7 +47,9 @@ from sim_eval import MAX_REL, load_policy  # noqa: E402
 FPS = 30
 SETTLE_S = 3.0
 SKILL_T_MAX = 25.0
-RAISE_M = 0.03
+RAISE_M = 0.035            # after the release the policy keeps control until the tips are this far up (its own
+                           # straight-up retract) or RELEASE_HOLD_S has passed, then the scripted move home
+RELEASE_HOLD_S = 1.5       # (5 cm was too much: the policy's retract often stops short, and an idle policy wanders)
 UNSURE = (0.3, 0.7)
 MEAS = yaml.safe_load((ROOT / "inputs/measurements.yaml").read_text())
 HOME_REAL = [MEAS["arm"]["home_pose"][j] for j in JOINT_NAMES]
@@ -72,8 +74,17 @@ class Game:
     def q_real(self):
         s = self.sim; return self.jm.sim_to_real(np.r_[s.d.qpos[s.qadr], s.d.qpos[s.gadr]])
 
-    def go_home(self, T=1.5):
-        s = self.sim; s.sync_plan(); s.move(s.home[:5], s.home[5], T)
+    def go_home(self, T=1.5, lift=0.0):
+        """Scripted return home; lift > 0 first raises the jaw tips straight up (after a drop call or a timeout the
+        jaws may still be next to the stack: never move sideways from there)."""
+        s = self.sim; s.sync_plan()
+        if lift:
+            R = s.d.xmat[s.gb].reshape(3, 3); p_grip = np.array([s.xin, 0.0, s.ztip])
+            tip = s.d.xpos[s.gb] + R @ p_grip; xdir = R[:2, 0] / np.linalg.norm(R[:2, 0])
+            q_up, err, _ = s.ik(p_grip, tip + [0, 0, lift], xdir, [s.d.qpos[s.qadr].copy()], w_orient=10.0)
+            if err < 10:
+                s.move(q_up, s.plan_g, 0.8)
+        s.move(s.home[:5], s.home[5], T)
 
     def pose(self, body):
         i = self.sim.m.body(body).id; return self.sim.d.xpos[i].copy(), self.sim.d.xmat[i].reshape(3, 3).copy()
@@ -122,10 +133,11 @@ class Game:
         sim, m, d = self.sim, self.sim.m, self.sim.d
         pol, pre, post = self.policy; pol.reset(); pre.reset(); post.reset()
         act_ids = [sim.act[j] for j in JOINT_NAMES]; lo, hi = m.actuator_ctrlrange[act_ids, 0], m.actuator_ctrlrange[act_ids, 1]
-        mon = DropMonitor(self.kin, top_xy_est, top_face_est); rel_z = None; event = "timeout"; self.trace = []
+        mon = DropMonitor(self.kin, top_xy_est, top_face_est); rel_z = None; event = "timeout"; self.trace = []; self.arm_frames = None
         for k in range(int(SKILL_T_MAX * FPS)):
             state = self.q_real().astype(np.float32)
-            f = cv2.resize(cv2.cvtColor(self.front(), cv2.COLOR_BGR2RGB), self.resize, interpolation=cv2.INTER_AREA)
+            self.last_front = self.front()
+            f = cv2.resize(cv2.cvtColor(self.last_front, cv2.COLOR_BGR2RGB), self.resize, interpolation=cv2.INTER_AREA)
             w = cv2.resize(self.wrist(), self.resize, interpolation=cv2.INTER_AREA)
             obs = {"observation.state": torch.from_numpy(state)[None],
                    "observation.images.front": torch.from_numpy(f).permute(2, 0, 1)[None].float() / 255,
@@ -141,8 +153,11 @@ class Game:
                 event = ev; break
             if ev == "released":
                 tip = self.kin.tip_pos(self.q_real())
-                rel_z = tip[2] if rel_z is None else rel_z
-                if tip[2] > rel_z + RAISE_M:
+                if rel_z is None:
+                    rel_z, rel_k = tip[2], k
+                    self.arm_frames = [(self.last_front, arm_mask(self.twin, self.cam, self.q_real()))]
+                if tip[2] > rel_z + RAISE_M or k - rel_k >= RELEASE_HOLD_S * FPS:
+                    self.arm_frames.append((self.front(), arm_mask(self.twin, self.cam, self.q_real())))
                     event = "released"; break
         return event, (k + 1) / FPS
 
@@ -159,7 +174,7 @@ class Game:
         mujoco.mj_forward(m, d); sim.sync_plan(); sim.wait(0.5)
         self.type_of = {b.body: b.type for b in start}; slot_of = {b.body: b.slot for b in start}; body_of = {b.slot: b.body for b in start}
         ref = self.front()
-        cam, rinfo = refine(ref, self.twin, template_poses(self.twin), HOME_REAL)
+        cam, rinfo = refine(ref, self.twin, template_poses(self.twin), HOME_REAL); self.cam = cam; self.arm_frames = None
         supply = SupplyMonitor(ref, cam); home_mask = arm_mask(self.twin, cam, HOME_REAL)
         stack_bodies = []; perceived_slots = []; turns = []
         supply_pose0 = {b.body: self.pose(b.body)[0] for b in start}
@@ -179,10 +194,11 @@ class Game:
                 frames, ev = self.human_place(body, stack_bodies); info["drop_call"] = None
             else:
                 ev, dur = self.robot_skill(xy_est, z_top); info.update(skill_event=ev, skill_s=round(dur, 1))
-                self.go_home()
+                self.go_home(lift=0.0 if ev == "released" else 0.06)
                 frames = [self.front() for _ in range(int(SETTLE_S * FPS)) if sim.wait(1 / FPS) is None]
                 moved = [b for b in left if np.linalg.norm(self.pose(b)[0] - supply_pose0[b]) > 0.02]
-                body = moved[0] if moved else None
+                body = max(moved, key=lambda b: self.pose(b)[0][2]) if moved else None   # the highest: the placed box
+                info["supply_boxes_moved"] = len(moved)                                    # (others were knocked)
                 info["drop_call"] = ev if ev.startswith("drop") else None
             after = frames[-1]
             # perception: which slot was emptied
@@ -197,7 +213,8 @@ class Game:
             info.update(slot_pred=slot, slot_true=truth_slot, slot_ok=slot == truth_slot)
             new_h = G.BOX[self.type_of[body_of[slot]]]["height"] if slot else 0.0
             dims = G.BOX[self.type_of[body_of[slot]]] if slot else None
-            f = features(cam, ref, before, frames, z_top, new_h, arm_mask=home_mask, new_dims=dims)
+            f = features(cam, ref, before, frames, z_top, new_h, arm_mask=home_mask, new_dims=dims,
+                         arm_frames=self.arm_frames if player == "robot" else None)
             col, why = collapse_check(f)
             info["features"] = {k: v for k, v in f.items() if k != "top_xy"}
             if self.debug is not None:                     # frames + trace for diagnosing a turn

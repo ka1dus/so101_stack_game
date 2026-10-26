@@ -27,8 +27,9 @@ LIFT_M = 0.03                 # carrying starts once the tips are this far above
 BLOCKED_UNITS = 5.0           # reading this far above the command = jaws stopped by something (the policy's "close"
                               # command is not always as low as the scripted expert's 0; sim_game 2026-10-25)
 STEADY_TICKS, STEADY_UNITS = 5, 0.5   # ... and steady: no more change than this over these ticks
-ZONE_R = 0.04                 # release zone: tips within this of the stack top centre (xy) ...
-ZONE_Z = (-0.01, 0.045)       # ... and this far above/below the top face (tips sit near the box's bottom)
+ZONE_R = 0.06                 # release zone: tips within this of the stack top centre (xy) ... (the centre is perceived:
+ZONE_Z = (-0.01, 0.06)        # 15-30 mm off on crooked stacks) ... and this far above/below the top face. Widened from
+                              # 4 / 4.5 cm after sim_game (2026-10-26): planned releases were called "drop: open"
 SLIP_ZONE_TOP = 0.07          # a box slipping out right over the stack (tips < 7 cm up) falls onto it: hand over to
                               # the collapse check instead of calling a drop
 
