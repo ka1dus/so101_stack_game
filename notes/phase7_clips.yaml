@@ -1,0 +1,17 @@
+# Phase 7 real clips (inputs/videos/phase7/, 640x480 at 30 fps; recorded 2026-10-26, arm at home).
+# Drafted from the frames (contact sheets every 1-2 s, 3x zooms of the stack); times are +-1 s.
+# Stacks run bottom to top. Box types were read from the side prints in the zooms (the user did not note them):
+#   no3: white side, teal "No.3-1M" stripe; no35: red MAX / orange label on the side, green top;
+#   no10: plain white side, shorter. A trailing "?" = a guess, "?" alone = not readable. The perception tests need
+#   the heights and timings; types only set the expected top height ("?" levels count as no35, the middle height).
+static_h2:     {kind: static, stack: ["no3", "no35"], walk_behind_s: [15.5, 17.5], truth: "no collapse"}
+static_h4:     {kind: static, stack: ["no3", "no35", "no10?", "no35"], walk_behind_s: [11.5, 13.5], truth: "no collapse"}
+static_h6:     {kind: static, stack: ["no3", "no35", "no10?", "no35", "no35", "no3"], walk_behind_s: [11.5, 15.0], truth: "no collapse"}
+human_turn_1:  {kind: human, style: "normal", stack_before: ["no3", "no35"], placed: "no3?", hand_in_s: [5.0, 8.5], truth: "placed, no collapse"}
+human_turn_2:  {kind: human, style: "slow", stack_before: ["no3", "no35", "no3?"], placed: "?", hand_in_s: [4.0, 13.0], truth: "placed, no collapse"}
+human_turn_3:  {kind: human, style: "hand rests near the stack", stack_before: ["?", "?", "?"], placed: "?", hand_in_s: [1.5, 7.0], truth: "placed, no collapse"}
+human_turn_4:  {kind: human, style: "normal, other supply box", stack_before: ["no3", "no35", "no3?"], placed: "no35", hand_in_s: [3.0, 7.0], truth: "placed, no collapse"}
+collapse_h3:   {kind: collapse, stack: ["no3", "no35", "no3?"], push_s: 4.5, truth: "collapse (all boxes on the table)"}
+collapse_h5:   {kind: collapse, stack: ["no3", "no10?", "no35", "no3?", "no35"], push_s: 4.5, truth: "collapse (all boxes on the table)"}
+top_off_h4:    {kind: collapse, stack: ["no3", "?", "no3?", "no35"], push_s: 4.5, truth: "collapse (top box pushed onto the table)"}
+top_nudged_h4: {kind: moved, stack: ["no3", "?", "no3?", "no35"], push_s: 4.5, truth: "loss: top box moved ~2 cm (game rule > 15 mm), still on the stack"}

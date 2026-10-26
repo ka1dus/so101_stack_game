@@ -34,6 +34,9 @@ def prism_mask(cam: Camera, xy, r, z0, z1, n=24):
 
 
 SUPPLY = np.array(yaml.safe_load((ROOT / "sim/assets/layout.yaml").read_text())["supply_area"]["corners"], float)
+TABLE = np.array(list(yaml.safe_load((ROOT / "sim/assets/layout.yaml").read_text())["table"]["corners"].values()), float)
+FALLEN_Z = 0.04        # m; a fallen box lies (or leans) below this
+COLUMN_R = 0.08        # m around the stacking spot: crooked stacks (+-2 cm) plus half a large box's length
 
 
 def _grow(P, pad):
@@ -42,9 +45,15 @@ def _grow(P, pad):
 
 def stack_region(cam: Camera, pad=0.04, arm_mask=None):
     """Where stack boxes (standing or fallen) can be seen: the yellow area grown by pad, up to STACK_TOP_Z, minus the
-    supply mat with its boxes (they change every turn) and minus the arm (arm_mask: the twin's arm, dilated)."""
+    supply mat with its boxes (they change every turn) and minus the arm (arm_mask: the twin's arm, dilated).
+    Only lines of sight that end on the table near its top (fallen boxes) or pass through the stack's own column
+    (standing boxes, the backdrop behind them): the rest of that prism looks past the table edge into the room, where
+    people walk by (real clips 2026-10-26)."""
     P = _grow(AREA, pad)
     roi = _fill((H, W), cam.project(np.vstack([np.c_[P, np.zeros(4)], np.c_[P, np.full(4, STACK_TOP_Z)]])))
+    T = TABLE[np.argsort(np.arctan2(*(TABLE - TABLE.mean(0)).T[::-1]))]
+    roi &= _fill((H, W), cam.project(np.vstack([np.c_[T, np.zeros(4)], np.c_[T, np.full(4, FALLEN_Z)]]))) | \
+        prism_mask(cam, SPOT, COLUMN_R, 0.0, STACK_TOP_Z)
     S = _grow(SUPPLY, 0.015)
     roi &= ~_fill((H, W), cam.project(np.vstack([np.c_[S, np.zeros(4)], np.c_[S, np.full(4, 0.025)]])))
     if arm_mask is not None:

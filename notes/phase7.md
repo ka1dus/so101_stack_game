@@ -488,3 +488,48 @@ The `front` view needs the board only from about 18 to 32 cm along the edge, up 
 
 **Remedy if wanted:** fine-tune on episodes rendered with the trimmed board, before the Phase 8 real trials.
 The Phase 7 recordings do not depend on the policy, so they can go ahead.
+
+## 14. Perception on the real recordings, 2026-10-26 (`scripts/phase7_real_clips.py`, `notes/phase7_real_clips.txt`)
+
+**Recordings:** 2 reference photos and 11 clips of the current setup (expanded mat, reach tape, trimmed backdrop), arm at home.
+- The per-clip notes are in `notes/phase7_clips.yaml`, drafted from the frames.
+- Box types were read from the side prints, so some are guesses.
+- Every frame is undistorted before use.
+
+**Camera refit:**
+- Moved the camera by about 5–9 mm and 0.2–0.5° from the 21 Oct calibration.
+- Mask cost 0.27 → 0.12 (full supply) and 0.22 → 0.07 (empty scene).
+- The two refits project the mat and stack-area corners within 3.1 px of each other.
+- Overlay: `notes/img/phase7_real_refit_new.png`.
+
+**Supply slots:**
+- 8/8 correct on both photos; dark share 0.00–0.02 when full, 0.83–1.00 when empty.
+- In every human turn exactly one slot emptied (8, 1, 1, 6), and the type comes from the slot.
+- The slot check is fairly sure of itself: only one slot read unsure (collapse_h5, slot 6, the "ask" path).
+
+**Collapse check:** 11/11 clips called correctly.
+- 3 static stacks (2, 4 and 6 boxes): 0 false calls, including 17 sliding 3 s windows per clip, with a person walking past.
+- 4 human placements: standing, with the top rising by about the new box's height (8–18 px against 10–13 expected).
+- 3 collapses called.
+- The 2 cm top nudge is also a loss by the game rule.
+
+Two fixes were needed to get there:
+1. **`stack_region` was too large.** The yellow-area prism up to 16 cm looked past the table edge into the room, so:
+   - a person walking beside the table caused false calls;
+   - in human turns it set the silhouette's top row, so the new box's rise wasn't seen.
+
+   Fix: the region now keeps only lines of sight that end on the table top below 4 cm (fallen boxes) or pass through an 8 cm column around the stacking spot (`FALLEN_Z`, `COLUMN_R`).
+   The sim collapse set is unchanged: 112/126, 0/274 false.
+2. **"Before" frame (test harness):** in human_turn_3 the hand was already in view at 0.5 s, so "before" is now the frame just ahead of the first hand detection, as the controller will take it at the start of the turn.
+
+**Hand check:** caught in all 8 clips with a hand (4 human turns, 4 pushes), starting about 0.3–0.7 s after my rough times. Nuisance flags:
+- **Walk-by:** a person walking beside the table is flagged for 2.5–3.4 s in each static clip (the workspace prism also looks past the table edge).
+  During a robot turn this would pause the skill, which is safe but a nuisance.
+- **After a human turn:** up to 3–4 s of flags after the hand left (human_turn_1, human_turn_3, collapse_h5).
+  Cause: the camera's **auto exposure**. With a hand in view the white table brightens about 12 % (165 → 184 grey levels), then drifts back, so the background stays "changed" until the 4 s latch releases.
+  Locking exposure and white balance would remove this; the collapse check is unaffected because its settle window starts after the exposure has recovered.
+
+**Open:**
+- Lock the `front` camera's exposure if the camera allows it.
+- Optionally restrict the hand workspace the same way as the stack region.
+- The robot-turn arm mask (D3) is still untested on real frames: it needs a clip with the arm moving.
