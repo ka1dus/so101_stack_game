@@ -64,6 +64,12 @@ class HandMonitor:
         self.hits = 0; self.present = False; self.track = None; self.valid_hist = []; self.idle = 0
         self.mask_q = None; self.mask_cache = None
 
+    def rebase(self, frame):
+        """Take `frame` as the empty-workspace background and drop any called hand (the player has confirmed the
+        workspace is clear and nothing moved for a while, e.g. a latched placed-box region or an exposure shift)."""
+        self.bg = None                                    # the next tick takes its frame as the background
+        self.still[:] = 0; self.hits = 0; self.present = False; self.track = None; self.idle = 0
+
     def mask(self, q_real):
         q = np.asarray(q_real, float)
         if self.mask_q is not None and np.abs(q - self.mask_q).max() < MASK_REUSE_UNITS:

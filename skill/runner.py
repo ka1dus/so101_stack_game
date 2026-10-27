@@ -113,19 +113,28 @@ class RealArm:
     def torque_off(self):
         self.robot.bus.disable_torque()
 
-    def move_to(self, goal, kin=None, speed=HOME_SPEED):
-        """Straight joint-space move at `speed` units/s (so101_go_home.py style). Stops at a target that fails the
-        safety check. Returns None or the reason it stopped."""
-        q = self.joints(); goal = np.asarray(goal, float); step = speed / FPS
-        while np.abs(goal - q).max() > 0.3:
-            t0 = time.perf_counter()
+    def move_to(self, goal, kin=None, speed=HOME_SPEED, paused=None):
+        return move_to(self, goal, kin, speed, paused)
+
+
+def move_to(arm, goal, kin=None, speed=HOME_SPEED, paused=None):
+    """Straight joint-space move at `speed` units/s (so101_go_home.py style); holds while paused() is True. Stops at a
+    target that fails the safety check. Returns None or the reason it stopped."""
+    q = arm.joints(); goal = np.asarray(goal, float); step = speed / FPS; virtual = getattr(arm, "virtual", False)
+    while np.abs(goal - q).max() > 0.3:
+        t0 = time.perf_counter()
+        if paused is not None and paused():
+            arm.send(q)                                     # hold at the current target (not the reading: no sag)
+        else:
             q = q + np.clip(goal - q, -step, step)
             if kin is not None and (why := safety_check(kin, q)):
-                self.hold(); return why
-            self.send(q)
+                arm.hold(); return why
+            arm.send(q)
+        if not virtual:
             time.sleep(max(0.0, 1 / FPS - (time.perf_counter() - t0)))
+    if not virtual:
         time.sleep(0.3)
-        return None
+    return None
 
 
 def lift_target(kin, q, dz=LIFT_M, iters=30):
@@ -143,13 +152,13 @@ def lift_target(kin, q, dz=LIFT_M, iters=30):
     return q if np.linalg.norm(goal - kin.tip_pos(q)) < 0.005 else None
 
 
-def go_home(arm, kin, home, lift=False):
+def go_home(arm, kin, home, lift=False, paused=None):
     """Scripted return home; lift=True first raises the tips straight up (the jaws may still be next to the stack)."""
     if lift:
         q_up = lift_target(kin, arm.joints())
         if q_up is not None:
-            arm.move_to(q_up, kin, speed=HOME_SPEED / 2)
-    return arm.move_to(home, kin)
+            move_to(arm, q_up, kin, speed=HOME_SPEED / 2, paused=paused)
+    return move_to(arm, home, kin, paused=paused)
 
 
 def load_policy(path, device="mps"):
@@ -163,16 +172,37 @@ def load_policy(path, device="mps"):
     return policy, pre, post
 
 
-def run_place_skill(arm, policy, kin, top_xy, top_face, move=True, t_max=SKILL_T_MAX, record=None):
+def run_place_skill(arm, policy, kin, top_xy, top_face, move=True, t_max=SKILL_T_MAX, record=None, on_tick=None, paused=None):
     """Run the skill from home. top_xy / top_face: the stack top from perception (m). record: list to append
-    (front_undistorted_bgr, wrist_bgr) frames to. Returns dict(event, duration_s, ticks, loop_hz, release_tick (index
-    into trace/record: the reading on which the release was seen), compute times, trace: per tick reading, target,
+    (front_undistorted_bgr, wrist_bgr) frames to. on_tick(front_bgr, q): called every tick with the undistorted front
+    frame and the reading (hand check, live view). paused(): while it returns True the arm holds where it is and the
+    policy is not run (safety pause, e.g. a hand in the workspace); on resume the policy restarts from the current
+    observation (its action queue / ensemble is reset). The arm may be a sim stand-in: `pinhole_front` (its front
+    frame needs no undistortion) and `virtual` (send() advances the physics; no real-time sleep).
+    Returns dict(event, duration_s (active time), ticks, pauses, paused_s, loop_hz, release_tick (index into
+    trace/record: the reading on which the release was seen), compute times, trace: per tick reading, target,
     compute time)."""
     pol, pre, post = policy; pol.reset(); pre.reset(); post.reset()
+    pinhole, virtual = getattr(arm, "pinhole_front", False), getattr(arm, "virtual", False)
     mon = DropMonitor(kin, top_xy, top_face); rel_z = rel_k = None; event = "timeout"; trace = []; g_cmd = None; dts = []
-    for k in range(int(t_max * FPS)):
+    was_paused = False; pauses = 0; paused_ticks = 0
+    while len(dts) < int(t_max * FPS):
         t0 = time.perf_counter()
         q, front, wrist = arm.read()
+        fr = front if pinhole else undistort_front(front)
+        if on_tick is not None:
+            on_tick(cv2.cvtColor(fr, cv2.COLOR_RGB2BGR), q)
+        if paused is not None and paused():
+            if not was_paused:
+                held = q.copy(); arm.send(held); was_paused = True; pauses += 1   # stop where it is now
+            elif virtual:
+                arm.send(held)                              # sim: time only passes when a command is sent
+            paused_ticks += 1
+            if not virtual:
+                time.sleep(max(0.0, 1 / FPS - (time.perf_counter() - t0)))
+            continue
+        if was_paused:                                      # resume: plan afresh from what the cameras see now
+            pol.reset(); pre.reset(); post.reset(); was_paused = False
         if g_cmd is not None:                               # drop_check on this reading and the last command
             ev = mon.tick(q, g_cmd)
             if ev and ev.startswith("drop"):
@@ -180,10 +210,9 @@ def run_place_skill(arm, policy, kin, top_xy, top_face, move=True, t_max=SKILL_T
             if ev == "released":
                 tip = kin.tip_pos(q)
                 if rel_z is None:
-                    rel_z, rel_k = tip[2], k
-                if tip[2] > rel_z + RAISE_M or k - rel_k >= RELEASE_HOLD_S * FPS:
+                    rel_z, rel_k = tip[2], len(trace)
+                if tip[2] > rel_z + RAISE_M or len(trace) - rel_k >= RELEASE_HOLD_S * FPS:
                     event = "released"; break
-        fr = undistort_front(front)
         f = cv2.resize(fr, RESIZE, interpolation=cv2.INTER_AREA); w = cv2.resize(wrist, RESIZE, interpolation=cv2.INTER_AREA)
         obs = {"observation.state": torch.from_numpy(q.astype(np.float32))[None],
                "observation.images.front": torch.from_numpy(f).permute(2, 0, 1)[None].float() / 255,
@@ -200,9 +229,11 @@ def run_place_skill(arm, policy, kin, top_xy, top_face, move=True, t_max=SKILL_T
         if record is not None:
             record.append((cv2.cvtColor(fr, cv2.COLOR_RGB2BGR), cv2.cvtColor(wrist, cv2.COLOR_RGB2BGR)))
         dt = time.perf_counter() - t0; dts.append(dt)
-        time.sleep(max(0.0, 1 / FPS - dt))
+        if not virtual:
+            time.sleep(max(0.0, 1 / FPS - dt))
     hz = 1 / np.mean([max(d, 1 / FPS) for d in dts]) if dts else 0.0
-    return dict(event=event, duration_s=round(len(dts) / FPS, 2), ticks=len(dts), loop_hz=round(float(hz), 1), release_tick=rel_k,
+    return dict(event=event, duration_s=round(len(dts) / FPS, 2), ticks=len(dts), pauses=pauses,
+                paused_s=round(paused_ticks / FPS, 2), loop_hz=round(float(hz), 1), release_tick=rel_k,
                 compute_ms_p50=round(float(np.median(dts) * 1000), 1) if dts else None,
                 compute_ms_p95=round(float(np.percentile(dts, 95) * 1000), 1) if dts else None,
                 trace=np.array(trace, np.float32))
