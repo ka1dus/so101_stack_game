@@ -1,0 +1,120 @@
+<title>Compute and Camera Options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one memo column; a summary strip, then one section per cost item, each with an options table. */
+:root{
+  --bg:#f6f7f8; --paper:#ffffff; --ink:#1b2127; --muted:#5b6670; --rule:#d9dee3; --accent:#c2410c; --rec:#e8f3ec; --rec-ink:#1d6b3a;
+  --display:"Archivo",system-ui,sans-serif; --body:"Source Serif 4",Georgia,serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161a;--paper:#1a2026;--ink:#e6eaee;--muted:#9aa5af;--rule:#2d353d;--accent:#f97316;--rec:#163223;--rec-ink:#7fd6a0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12161a;--paper:#1a2026;--ink:#e6eaee;--muted:#9aa5af;--rule:#2d353d;--accent:#f97316;--rec:#163223;--rec-ink:#7fd6a0;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16.5px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px}
+.memo{max-width:820px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:36px clamp(18px,5vw,48px)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(24px,4vw,30px);line-height:1.2;margin:6px 0 16px;text-wrap:balance}
+h2{font-family:var(--display);font-weight:700;font-size:21px;margin:36px 0 10px;padding-top:20px;border-top:1px solid var(--rule);text-wrap:balance}
+h3{font-family:var(--display);font-weight:700;font-size:16px;margin:22px 0 8px}
+p,ul{margin:0 0 12px;max-width:68ch}
+ul{padding-left:20px}
+li{margin-bottom:4px}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;margin:18px 0}
+.strip div{background:var(--paper);padding:12px 14px}
+.strip b{display:block;font-family:var(--mono);font-size:20px;color:var(--accent);font-variant-numeric:tabular-nums}
+.strip span{font-family:var(--display);font-size:13px;color:var(--muted)}
+.tbl{overflow-x:auto;margin:10px 0 16px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:620px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--display);font-weight:500;font-size:13px;color:var(--muted)}
+td.num{font-family:var(--mono);font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.rec td{background:var(--rec)}
+.pill{display:inline-block;font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--rec-ink);border:1px solid var(--rec-ink);border-radius:999px;padding:0 7px;margin-left:6px}
+.note{font-size:14px;color:var(--muted)}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<article class="memo">
+  <div class="eyebrow">Robot learning project · cost options</div>
+  <h1>Compute and Camera Options</h1>
+
+  <p>The project runs mostly on hardware we already have: one GPU workstation, and now a second PC, siix-pc, with a 20 GB workstation GPU. Two items still need spending: GPU time for the one large training run, and power for the depth camera. This page compares the options for each, with time and cost.</p>
+
+  <div class="strip">
+    <div><b>$90</b><span>Requested cap ($50 GPU credit + $40 hub)</span></div>
+    <div><b>~$30–75</b><span>Expected actual spend</span></div>
+    <div><b>~1 wk</b><span>Time saved vs. our two machines alone</span></div>
+  </div>
+
+  <h2>1. Training compute</h2>
+
+  <h3>The problem</h3>
+  <p>One workstation (16 GB GPU, 20 cores) currently does everything: simulation, data generation, evaluation and training. Two things slow it down:</p>
+  <ul>
+    <li><strong>The new model is bigger.</strong> SmolVLA is several times larger than the policy I trained before. On 16 GB it trains with small batches, so each run is roughly 2–3× slower than on an 80 GB data-centre GPU.</li>
+    <li><strong>Everything waits in line.</strong> While the workstation trains, it can't generate data or test the model. Each round of "generate, train, test, fix" runs one step at a time.</li>
+  </ul>
+  <h3>siix-pc</h3>
+  <p>A second PC, siix-pc, is available: NVIDIA RTX 4000 Ada (20 GB), Intel Core Ultra 7 265K (20 cores), 64 GB RAM. It fixes the second problem but not the first:</p>
+  <ul>
+    <li><strong>It removes the waiting.</strong> One machine trains while the other generates data and tests the model. With both generating, data takes half as long.</li>
+    <li><strong>It doesn't make a training run shorter.</strong> It's a low-power (130 W) card with about half the memory speed of the current workstation, so a run takes about as long as on the current workstation, or a bit longer. Its 20 GB allows somewhat larger batches.</li>
+  </ul>
+  <p>So the two machines handle data generation, pilots, testing and the smaller fine-tunes for free. Renting a GPU now only makes sense for the one large main training run, where an A100 is 2–3× faster.</p>
+
+  <h3>Time</h3>
+  <div class="tbl"><table>
+    <tr><th>Measure</th><th>Current workstation only</th><th>Both our machines</th><th>Both + one rented A100 run</th></tr>
+    <tr><td>One main training run (60k steps)</td><td class="num">~30–45 h</td><td class="num">~30–55 h</td><td class="num">~13–15 h</td></tr>
+    <tr><td>Whole training period (3–4 rounds)</td><td class="num">~4–6 weeks</td><td class="num">~3–4 weeks</td><td class="num">~2–3 weeks</td></tr>
+    <tr><td>Whole project</td><td class="num">~5–7 weeks</td><td class="num">~4–5 weeks</td><td class="num">~3–4 weeks</td></tr>
+  </table></div>
+  <p class="note">A100 speed is from the LeRobot documentation (about 4–5 h per 20k SmolVLA steps). Both of our machines' speeds are estimates from spec sheets; a short test run (about 500 steps on each) will measure them before any money is spent.</p>
+
+  <h3>Options</h3>
+  <div class="tbl"><table>
+    <tr><th>Option</th><th>Price</th><th>Hours needed</th><th>Estimated cost</th><th>Trade-off</th></tr>
+    <tr><td>A. Current workstation only</td><td class="num">$0</td><td class="num">n/a</td><td class="num">$0</td><td>Free, but the slowest: ~5–7 weeks</td></tr>
+    <tr class="rec"><td>B. Both our machines (adds the RTX 4000 Ada PC)<span class="pill">Recommended base</span></td><td class="num">$0</td><td class="num">n/a</td><td class="num">$0</td><td>Removes the waiting and doubles data generation; main training run still ~30–55 h</td></tr>
+    <tr class="rec"><td>C. B + RunPod A100 80 GB, Community Cloud, main run only<span class="pill">Recommended add-on</span></td><td class="num">$1.19/h</td><td class="num">15–20</td><td class="num">$18–24<br>+ $10.50 storage</td><td>Saves about a week; cheapest reliable rental</td></tr>
+    <tr><td>D. B + RunPod A100 80 GB, Secure Cloud, main run only</td><td class="num">$1.79/h</td><td class="num">15–20</td><td class="num">$27–36<br>+ $10.50 storage</td><td>Data-centre hosts, fewer interruptions, 50 % more per hour</td></tr>
+    <tr><td>E. B + RunPod H100 80 GB, Community, main run only</td><td class="num">$1.99/h</td><td class="num">~11–16 (if ~1.3–1.5× faster; not yet measured)</td><td class="num">~$22–32<br>+ $10.50 storage</td><td>A few hours shorter at similar or higher cost</td></tr>
+    <tr><td>F. B + Vast.ai interruptible</td><td class="num">live market</td><td class="num">15–20 + restarts</td><td class="num">likely below C</td><td>Advertised as 50 %+ cheaper, but machines can be reclaimed mid-run</td></tr>
+    <tr><td>G. 48–64-core Linux CPU server (data generation)</td><td class="num">€1.37/h (Hetzner 48-core)</td><td class="num">n/a</td><td class="num">not needed</td><td>siix-pc already doubles generation; no GPU for simulation rendering</td></tr>
+  </table></div>
+
+  <h3>How the cost stays capped</h3>
+  <ul>
+    <li><strong>Prepaid credit:</strong> $50 is loaded onto the RunPod account in advance, with no auto top-up. Spending can't go above it.</li>
+    <li><strong>Pilot first:</strong> every training setup is tested on our own machines before the rented GPU is used.</li>
+    <li><strong>Only the main run is rented:</strong> fine-tunes, pilots and testing stay on our two machines.</li>
+    <li><strong>Auto-stop:</strong> the rented machine shuts itself down when a run ends, so idle time isn't billed.</li>
+    <li><strong>Frequent checkpoints:</strong> a saved copy every 2,000 steps means a lost machine costs minutes, not hours.</li>
+    <li>Expected spend under option C is <strong>$30–35</strong>. The rest of the $50 is a buffer for a failed start. If the main run on our own machines turns out fast enough in the speed test, nothing is rented at all.</li>
+  </ul>
+
+  <h2>2. Depth camera power</h2>
+
+  <h3>The problem</h3>
+  <p>The new task finds objects anywhere on the table using the depth camera on the robot's wrist (Orbbec Gemini 2). That camera is on a port supplying 900 mA, below its 1.5 A requirement. It already resets during use: the system log shows it dropping off the USB bus. I wrote software that restarts it automatically, which keeps the robot safe, but each reset interrupts a test. The depth stream, unused so far, draws more power and makes resets more likely.</p>
+  <p>If this isn't fixed, failures in object finding could come from power drops rather than from the method. That makes results hard to trust and costs testing time.</p>
+
+  <h3>Options</h3>
+  <div class="tbl"><table>
+    <tr><th>Option</th><th>Cost</th><th>Trade-off</th></tr>
+    <tr><td>A. Leave as is</td><td class="num">$0</td><td>Resets continue and likely get worse with depth on; unreliable results</td></tr>
+    <tr><td>B. Try a different port on the Mac, directly with a USB-C cable</td><td class="num">$0–15</td><td>Free test first. Some ports supply more power than the current one; if a 1-hour soak test with depth on shows no resets, nothing else is needed.</td></tr>
+    <tr class="rec"><td>C. Powered USB 3 hub with its own power adapter<span class="pill">Recommended</span></td><td class="num">~$30–60</td><td>Reliable fix that doesn't depend on the Mac's ports; buy only if option B still shows resets</td></tr>
+    <tr><td>D. Separate power supply for the camera</td><td class="num">~$15–30</td><td>Only if this camera model accepts external power; needs checking in Orbbec's documentation</td></tr>
+  </table></div>
+
+  <h2>Recommendation</h2>
+  <ul>
+    <li><strong>Compute:</strong> use both our machines (option B), plus one rented A100 run for the main training (option C), capped by $50 prepaid credit. Expected spend $30–35. Saves about a week over our machines alone, and 2–3 weeks over the current setup.</li>
+    <li><strong>Camera:</strong> try option B (free) first; if resets continue, buy a powered hub (~$40).</li>
+    <li><strong>Total request:</strong> up to $90, expected $30–75.</li>
+  </ul>
+
+  <p class="note">Prices checked on 30 Oct 2026; they change. siix-pc figures added 2 Nov 2026, from spec sheets, not yet measured. Sources: <a href="https://www.runpod.io/pricing">RunPod pricing</a>, <a href="https://huggingface.co/docs/lerobot/smolvla">LeRobot SmolVLA docs</a>, <a href="https://www.hetzner.com/cloud/general-purpose/">Hetzner dedicated-vCPU plans</a>, <a href="https://vast.ai/pricing">Vast.ai pricing</a>.</p>
+</article>

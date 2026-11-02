@@ -1,0 +1,59 @@
+<title>Robot Learning Sponsorship</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one readable memo column, a cost strip under the opening, numbered reasons. */
+:root{
+  --bg:#f6f7f8; --paper:#ffffff; --ink:#1b2127; --muted:#5b6670; --rule:#d9dee3; --accent:#c2410c;
+  --display:"Archivo",system-ui,sans-serif; --body:"Source Serif 4",Georgia,serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12161a;--paper:#1a2026;--ink:#e6eaee;--muted:#9aa5af;--rule:#2d353d;--accent:#f97316;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12161a;--paper:#1a2026;--ink:#e6eaee;--muted:#9aa5af;--rule:#2d353d;--accent:#f97316;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px}
+.memo{max-width:680px;margin:0 auto;background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:36px clamp(20px,5vw,48px)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(24px,4vw,30px);line-height:1.2;margin:6px 0 20px;text-wrap:balance}
+h2{font-family:var(--display);font-weight:700;font-size:18px;margin:28px 0 10px}
+p{margin:0 0 14px}
+.ask{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;margin:18px 0 6px}
+.ask div{background:var(--paper);padding:12px 14px}
+.ask b{display:block;font-family:var(--mono);font-size:20px;color:var(--accent);font-variant-numeric:tabular-nums}
+.ask span{font-family:var(--display);font-size:13px;color:var(--muted)}
+ol{padding-left:22px;margin:0;display:grid;gap:10px}
+ol li::marker{font-family:var(--mono);color:var(--accent)}
+strong{font-weight:600}
+.sign{margin-top:24px}
+</style>
+
+<article class="memo">
+  <div class="eyebrow">Sponsorship request · physical AI side project</div>
+  <h1>A robot arm you can talk to, for about $190</h1>
+
+  <p>Over the past two weeks I built a robot arm that plays a stacking game against a person, using hardware we already have. All of its learning happened in simulation. On the real arm it went 30 for 30 in placement trials, and its camera-based judge made 0 false calls in 56 placements.</p>
+
+  <p>The next step is an arm that takes plain-language instructions ("rebuild that stack in reverse on the other spot", "take the marker off the box"), plans the steps, carries them out and checks each one with its cameras. I'm asking the company to cover:</p>
+
+  <div class="ask">
+    <div><b>$150</b><span>Prepaid cloud GPU credit (hard cap)</span></div>
+    <div><b>$40</b><span>Powered USB hub for the depth camera</span></div>
+    <div><b>3–4 wks</b><span>Timeline</span></div>
+  </div>
+
+  <h2>Why it's worth it for us</h2>
+  <ol>
+    <li><strong>It's the same core problem our robots have.</strong> Camera calibration, matching simulation to the real world, and above all avoiding false alarms. My judge went from 18 false calls in 56 to zero by asking for confirmation when unsure. That's the same trade-off a surveillance robot makes between missed events and false alerts.</li>
+    <li><strong>Plain-language command is where robot interfaces are heading.</strong> In this design, a language model breaks an instruction into steps the robot already knows, and each step is verified. The same design fits operator commands for patrol robots ("check the north gate, then report") without trusting a black box.</li>
+    <li><strong>In-house know-how at almost no cost.</strong> Physical AI is moving fast. This gives us first-hand, measured experience with the main open tools (LeRobot, SmolVLA, MuJoCo), and a clear view of what they can and can't do yet, before a customer, partner or competitor asks.</li>
+    <li><strong>Reusable assets.</strong> A documented sim-to-real playbook, the digital-twin calibration process and the evaluation methods stay with the company, with a written report at the end.</li>
+    <li><strong>Visibility and hiring.</strong> A public demo credited to the company shows technical depth to customers and investors, and attracts engineers who want to work on robot learning.</li>
+  </ol>
+
+  <h2>What it is not</h2>
+  <p>It won't produce a product or revenue directly, and I'm not claiming the robot can do "anything". The scope is a fixed menu of actions on boxes and small objects, with results reported per action.</p>
+
+  <h2>Risk</h2>
+  <p>Small and bounded. Spending can't exceed the prepaid credit. Simulation and testing run on hardware we already have. I'll report results and spend at each checkpoint, and the project stops if the early pilot doesn't work.</p>
+
+  <p class="sign">Thanks for considering it.</p>
+</article>
