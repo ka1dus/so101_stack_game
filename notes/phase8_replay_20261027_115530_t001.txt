@@ -1,0 +1,11 @@
+session 20261027_115530 trial 1: 750 ticks; jaws closed at 6.3 s
+target minus reading, mean per joint (shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll, gripper):
+  reach (0-5 s)
+    real [-1.3  1.2 -2.4 -0.2  3.4  1. ]
+    sim  [-0.2  0.3 -0.2  0.1  0.6  0.2]
+    tip z cm: real 3.0, sim 3.4; tip xy gap real-sim 0.7 cm
+  carry (after the close + 1 s)
+    real [ 0.3 -1.1 -8.5 -2.7  0.2 -7.8]
+    sim  [ 0.1  0.  -0.1  0.  -0.  -7.7]
+    tip z cm: real 2.8, sim 4.2; tip xy gap real-sim 3.9 cm
+sim boxes above 3 cm at the end (held/lifted): []

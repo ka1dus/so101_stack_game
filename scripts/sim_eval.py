@@ -219,6 +219,8 @@ def main():
     ap.add_argument("--want-pairing", default=None, help="targeted: only states with this picked_on_top pairing")
     ap.add_argument("--states", choices=("v1", "game"), default="v1",
                     help="v1: the original sampler (the 200-state comparison set); game: game-rule supplies (fixed layout + rule gaps)")
+    ap.add_argument("--servo", default=None, help="sim servo model yaml (e.g. sim/assets/servo_fit.yaml, the real-arm fit)")
+    ap.add_argument("--servo-scale", type=float, default=1.0, help="scale kp and kv of --servo on every joint (robustness check)")
     ap.add_argument("--resize", default=None, help="WxH policy input size (must match the training dataset, e.g. 320x240)")
     ap.add_argument("--device", default="mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu"))
     a = ap.parse_args()
@@ -226,6 +228,10 @@ def main():
     policy, pre, post = load_policy(a.policy, a.device, a.n_action_steps, a.temporal_ensemble)
     print(f"inference: n_action_steps={policy.config.n_action_steps}, temporal_ensemble_coeff={policy.config.temporal_ensemble_coeff}")
     sim = GT.Sim(); rng = np.random.default_rng(a.seed); jm = JointMapping.from_files()
+    if a.servo:
+        import servo_model
+        sp = {j: (kp * a.servo_scale, kv * a.servo_scale, f) for j, (kp, kv, f) in servo_model.load(a.servo).items()}
+        servo_model.apply_params(sim.m, sp); print(f"servo model: {a.servo} x{a.servo_scale}")
     rand = Randomizer(sim.m); renderer = mujoco.Renderer(sim.m, H, W)
     rows = []; t0 = time.time(); n_drift = 0; n_filtered = 0
     height_p = None if a.height_min is None else {h: 1.0 for h in range(a.height_min, (a.height_max or G.MAX_STACK) + 1)}

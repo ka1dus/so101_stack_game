@@ -23,11 +23,14 @@ import numpy as np
 
 from perception.drop import Kinematics
 from perception.register import refine
-from perception.stack import COLUMN_R, SPOT, STACK_TOP_Z, TOP_RISE_SHARE, change, collapse_check, features, prism_mask, stack_region, top_xy
+from perception.stack import COLUMN_R, SPOT, STACK_TOP_Z, change, fit_box, landed_tick, prism_mask, stack_region, top_xy, turn_check
 from perception.supply import BOX, LAYOUT, SupplyMonitor
 from perception.twin import Twin, arm_mask
 from safety.monitor import RESUME_S, EStop, EStopped, HandWatch
-from skill.runner import FPS, go_home, run_place_skill
+from skill.grip_floor import GripFloor
+from skill.runner import FPS, go_home, open_before_home, run_place_skill, safety_check
+from skill.scripted_place import ScriptedPlace
+from skill.stack_look import look_at_stack
 from ui.display import sound
 
 import sys
@@ -44,6 +47,13 @@ SLOT_TYPE = {s["id"]: s["type"] for s in LAYOUT["boxes"]}
 HOME_TOL = 2.0
 WATCHDOG_S = 20.0         # the workspace "busy" this long (game time): a stuck hand call (sim_game 2026-10-27 waited 9 h)
 QUIET_S = 1.0             # SPACE accepted with the hand check still latched if nothing has moved for this long
+KEY_DEAD_S = 1.0          # SPACE ignored this long after a wait starts (real games 30 Oct: an early or doubled SPACE ended
+                          # the human turn before any box was placed, and the game called a loss)
+NOTHING_PX = 150          # human turn with no supply slot emptied and fewer changed table pixels than this: no move yet
+                          # (real 30 Oct: 0 px with nothing placed; placed boxes 707-1775 px)
+GRIP_FLOOR = 28.0          # robot recipe: min gripper opening before the first grasp (notes/phase8.md section 18)
+HANDOVER_LIFT = 0.04       # ... the scripted place takes over once the box is 4 cm up
+ASK_FIT, ASK_OFF_MM = 0.55, 26.0   # turn_check passed but borderline (fit 0.45-0.55, or 26-32 mm off): the player confirms
 
 
 class Tail:
@@ -62,14 +72,15 @@ class Tail:
 
 class Controller:
     def __init__(self, backend, policy, ui, out_dir, human_first=True, initial_stack=(), threaded_hand=True, no_motion=False,
-                 max_turns=None):
+                 max_turns=None, recipe=True):
         self.b, self.policy, self.ui = backend, policy, ui
         self.out = Path(out_dir); self.out.mkdir(parents=True, exist_ok=True)
         self.human_first, self.stack = human_first, list(initial_stack)
         self.kin, self.twin, self.twin2 = Kinematics(), Twin(), Twin(scale=2)
         self.estop = EStop(); self.quit = False; self.threaded_hand = threaded_hand; self.no_motion = no_motion
         self.vw = None; self.turns = []; self.max_turns = max_turns
-        self.last_frame = None; self.busy_since = None; self.watchdogs = []
+        self.last_frame = None; self.busy_since = None; self.watchdogs = []; self.top_known = None
+        self.recipe = recipe; self.front_fn = None         # the Phase 8 robot recipe (see _robot_turn)
 
     # ------------------------------------------------------------ frames, keys, video
     def _key(self, k):
@@ -138,9 +149,11 @@ class Controller:
         """Wait for SPACE. Refused while a hand is in the workspace, unless nothing there has moved for QUIET_S (the
         hand check can stay latched on the placed box or an exposure change for up to 4 s): then the player's word
         counts and the hand check takes the current frame as its new background."""
-        self.ui.set(title, sub, mode)
+        self.ui.set(title, sub, mode); t0 = self.b.clock()
         while True:
             f, k = self._next()
+            if k == "space" and self.b.clock() - t0 < KEY_DEAD_S:
+                continue                                     # pressed before (or just as) the wait began
             if k == "space":
                 if self.hand.present and not allow_hand:
                     if self.hand.quiet_s() < QUIET_S:
@@ -187,6 +200,9 @@ class Controller:
         self.ref = f0
         self.cam, self.refit = refine(self.ref, self.twin, template_poses(self.twin), self.b.home.tolist())
         self.supply = SupplyMonitor(self.ref, self.cam); self.home_mask = arm_mask(self.twin, self.cam, self.b.home.tolist())
+        if self.recipe and self.b.arm is not None and not getattr(self.b.arm, "virtual", False):
+            from skill.plain_wall import PlainWall           # the room behind the arm painted plain for the policy
+            self.front_fn = PlainWall(self.cam)
         self.hand = HandWatch(self.cam, self.twin2, self.kin, clock=self.b.clock, threaded=self.threaded_hand)
         col = prism_mask(self.cam, SPOT, COLUMN_R, 0.0, STACK_TOP_Z).astype(np.uint8)
         self.ui.overlay["column"] = max(cv2.findContours(col, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0], key=cv2.contourArea)
@@ -203,26 +219,29 @@ class Controller:
     def _stack_top(self, before):
         z_top = 0.0002 + sum(BOX[t]["height"] for t in self.stack)
         xy = None
-        if self.stack:
+        if self.stack and self.top_known is not None:      # from the previous turn's judge
+            xy = self.top_known
+        elif self.stack:
             fg = change(before, self.ref) & stack_region(self.cam, arm_mask=self.home_mask); xy = top_xy(self.cam, fg, z_top)
         xy = SPOT if xy is None else xy
         self.ui.overlay["top_uv"] = self.cam.project(np.array([[*xy, z_top]]))[0]
         return xy, z_top
 
     # ------------------------------------------------------------ turns
-    def _human_turn(self):
-        sound("turn")
+    def _human_turn(self, again=False):
+        sound("alert" if again else "turn")
         if self.b.arm is not None and not self.b.scripted_human:
             self.b.arm.hold()                                # frozen, torque on
         if self.b.scripted_human:                           # the scripted human "presses SPACE" once its box is down
             self.ui.set("Your turn", "(scripted human)", "human"); self.b.human_turn(); self.hand.rebase(self.b.frame())
         else:
-            self._wait_space("Your turn", "place one box on the stack, take your hand away, press SPACE", "human")
+            self._wait_space("No new box seen" if again else "Your turn",
+                             "place one box on the stack, take your hand away, press SPACE", "human")
         self.ui.set("Settling", "3 s: hands off", "judge")
         frames, restarts = self._settle()
         return dict(settle_restarts=restarts), frames, None
 
-    def _robot_turn(self, xy, z_top):
+    def _robot_turn(self, xy, z_top, before=None):
         sound("robot"); self.ui.set("Robot's turn", "keep your hands out of the workspace", "robot")
         while self._blocked("robot_start"):                  # start only with the workspace clear
             self._next()
@@ -250,11 +269,17 @@ class Controller:
 
             def paused_moving():                             # scripted moves: no per-tick hook, so look here
                 self._tick(self.b.frame()); return paused()
-            res = run_place_skill(self.b.arm, self.policy, self.kin, xy, z_top, record=tail, on_tick=on_tick, paused=paused)
+            placed = looked = None
+            if not self.recipe:
+                res = run_place_skill(self.b.arm, self.policy, self.kin, xy, z_top, record=tail, on_tick=on_tick, paused=paused)
+            else:
+                res, placed, looked = self._recipe_skill(xy, z_top, before, tail, on_tick, paused, paused_moving)
+            if self.recipe and (o := open_before_home(self.b.arm, self.kin, res["trace"], res["event"] == "released")) is not None:
+                print(f"  opened the gripper before going home (it read {o:.1f})", flush=True)
             go_home(self.b.arm, self.kin, self.b.home, lift=res["event"] != "released", paused=paused_moving)
             arm_frames = None
             if res.get("release_tick") is not None:
-                tr = res["trace"]; k0 = res["release_tick"]; first, last = tail.get(k0), tail.get(tail.count - 1)
+                tr = res["trace"]; k0 = landed_tick(self.kin, tr, res["release_tick"]); first, last = tail.get(k0), tail.get(tail.count - 1)
                 if first is not None and last is not None:
                     arm_frames = [(first[0], arm_mask(self.twin, self.cam, tr[k0, :6].tolist())),
                                   (last[0], arm_mask(self.twin, self.cam, tr[-1, :6].tolist()))]
@@ -264,7 +289,59 @@ class Controller:
         frames, restarts = self._settle()
         info = dict(skill_event=res["event"], skill_s=res["duration_s"], pauses=res["pauses"], paused_s=res["paused_s"],
                     loop_hz=res.get("loop_hz"), settle_restarts=restarts)
+        if self.recipe and not self.no_motion:
+            info.update(scripted_place=placed, look=looked)
         return info, frames, arm_frames
+
+    def _recipe_skill(self, xy, z_top, before, tail, on_tick, paused, paused_moving):
+        """The robot turn as in the Phase 8 trials (notes/phase8.md sections 18-22): wrist look at the stack, the policy
+        picks with the gripper-opening floor (the plain-wall front on the real arm), the scripted place puts the box on
+        what the look saw. Returns (skill result, scripted place info, look info)."""
+        arm = self.b.arm; real = not getattr(arm, "virtual", False)
+        top_t = self.stack[-1] if self.stack else None; yaw = 0.0; target = np.asarray(xy, float); looked = None
+        if top_t is not None and before is not None:         # front estimate: yaw (and xy unless known)
+            fg = change(before, self.ref, shadows=True) & stack_region(self.cam, arm_mask=self.home_mask)
+            if fg.sum() > 50:
+                sc, fxy, yaw = fit_box(self.cam, fg, z_top - BOX[top_t]["height"], BOX[top_t], target, top_only=len(self.stack) > 1)
+                if self.top_known is None and sc >= 0.75:
+                    target = fxy
+            self.ui.set("Robot's turn", "looking at the stack", "robot")
+            looked = look_at_stack(arm, self.kin, self.b.home, target, yaw, z_top, top_t, real=real, paused=paused_moving,
+                                   log=lambda m: print(m, flush=True))
+            if looked["ok"]:
+                target = np.array(looked["xy"]); yaw = np.radians(looked["yaw_deg"])
+        self.ui.set("Robot's turn", "keep your hands out of the workspace", "robot")
+        res = run_place_skill(arm, self.policy, self.kin, xy, z_top, record=tail, on_tick=on_tick, paused=paused,
+                              front_fn=self.front_fn, act_fn=GripFloor(GRIP_FLOOR), handover_lift=HANDOVER_LIFT)
+        placed = None
+        if res["event"] == "handover":
+            extra = []
+
+            def place_tick(c):
+                # the sim backend's frame() also advances time; the sim arm's camera() only renders
+                f = self.b.frame() if real else cv2.cvtColor(arm.camera("front"), cv2.COLOR_RGB2BGR)
+                q = arm.joints(); self._tick(f, q); tail.append((f,)); extra.append(np.r_[q, c, 0.0])
+            k_hand = len(res["trace"])
+            full = set(self.supply.features(self.ref)) - {k for t in self.turns for k in t.get("emptied", [])}
+            placed = ScriptedPlace(self.kin).run(arm, res["trace"], target, z_top, yaw, safety=lambda c: safety_check(self.kin, c),
+                                                 on_tick=place_tick, paused=paused, log=lambda m: print(m, flush=True), full=full)
+            if extra:
+                res["trace"] = np.vstack([res["trace"], np.array(extra, np.float32)])
+            res["event"] = "released" if placed["event"] == "released" else "scripted " + placed["event"]
+            res["release_tick"] = k_hand + placed["release_index"] if placed.get("release_index") is not None else None
+        return res, placed, looked
+
+    def _nothing_placed(self, before, after, xy, z_top):
+        """SPACE without a move: no supply slot emptied (and the slot check is sure) and almost nothing changed on the
+        table or the stack. Not a loss; the turn goes on. A box knocked off or moved changes far more than NOTHING_PX."""
+        fb, fa = self.supply.features(before), self.supply.features(after)
+        if any(fb[k]["dark"] < 0.5 <= fa[k]["dark"] for k in fb):
+            return False
+        if any(UNSURE[0] < v["dark"] < UNSURE[1] for v in list(fb.values()) + list(fa.values())):
+            return False
+        _, _, f = turn_check(self.cam, self.ref, before, after, z_top, self.stack[-1] if self.stack else None, None,
+                             arm_mask=self.home_mask, top_xy0=xy, top_known=self.top_known is not None)
+        return f["changed"] < NOTHING_PX and f["blob"] < NOTHING_PX
 
     def _judge(self, player, before, frames, arm_frames, info, xy, z_top):
         after = frames[-1]
@@ -275,15 +352,18 @@ class Controller:
             ptype, asked = self._ask_type(player)
         else:
             ptype, asked = SLOT_TYPE[emptied[0]], False
-        new_h = BOX[ptype]["height"] if ptype else 0.0
-        f = features(self.cam, self.ref, before, frames, z_top, new_h, arm_mask=self.home_mask,
-                     new_dims=BOX[ptype] if ptype else None, arm_frames=arm_frames)
-        col, why = collapse_check(f)
+        # turn check v2 (perception/stack.py turn_check, notes/phase8.md section 23): photometric match, the new box as a
+        # flat box on the old top (known from the previous turn), old-top coverage, edges elsewhere, old stack change
+        ok2, why, f = turn_check(self.cam, self.ref, before, after, z_top, self.stack[-1] if self.stack else None, ptype,
+                                 arm_mask=self.home_mask, top_xy0=xy, top_known=self.top_known is not None)
+        col = not ok2
         asked_on_stack = None
-        if not col and ptype and z_top > 0.005 and f["top_rise_px"] < TOP_RISE_SHARE * f["top_rise_expected_px"]:
-            asked_on_stack = self._ask_on_stack()
-            if not asked_on_stack:
-                col, why = True, ["new box not on the stack (player's answer)"]
+        if ptype and z_top > 0.005 and (f.get("unsure") or (not col and (f["fit"] < ASK_FIT or f["off_mm"] > ASK_OFF_MM))):
+            asked_on_stack = self._ask_on_stack()          # borderline either way: the player says where the box is
+            col = not asked_on_stack
+            why = ["new box not on the stack (player's answer)"] if col else []
+        if not col and ptype:
+            self.top_known = np.array(f["xy_new"])          # the next turn's old top
         drop = info.get("skill_event", "").startswith("drop")
         loss = bool(col or drop or ptype is None)
         call = ("loss: " + (info["skill_event"] if drop else "no box placed" if ptype is None else ", ".join(why))) if loss else "ok"
@@ -304,9 +384,13 @@ class Controller:
                 before, _ = self._next(); self._overlay_slots(before)
                 xy, z_top = self._stack_top(before)
                 if player == "human":
-                    info, frames, arm_frames = self._human_turn()
+                    info, frames, arm_frames = self._human_turn(); early = 0
+                    while not self.b.scripted_human and self._nothing_placed(before, frames[-1], xy, z_top):
+                        early += 1; print("  no new box seen and no supply slot emptied: the human turn goes on", flush=True)
+                        info, frames, arm_frames = self._human_turn(again=True)
+                    info.update(early_space=early)
                 else:
-                    info, frames, arm_frames = self._robot_turn(xy, z_top)
+                    info, frames, arm_frames = self._robot_turn(xy, z_top, before)
                 self.ui.set("Judging", "", "judge"); self._tick(frames[-1])
                 loss, call, ptype = self._judge(player, before, frames, arm_frames, info, xy, z_top)
                 info.update(turn=len(self.turns), player=player, height=len(self.stack), t=round(time.time() - t_start, 1))

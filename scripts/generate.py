@@ -82,11 +82,17 @@ def main():
     ap.add_argument("--crooked-share", type=float, default=1.0, help="share of episodes that must meet --min-crooked-mm")
     ap.add_argument("--states", choices=("v2", "game"), default="game",
                     help="game (full v2 run): template-layout games + rule-spaced supplies + some dense (SUPPLY_P_GAME); v2: pilot sampling")
+    ap.add_argument("--servo", default=None, help="sim servo model yaml (e.g. sim/assets/servo_fit.yaml, the real-arm fit)")
+    ap.add_argument("--servo-jitter", type=float, default=0.0, help="per-episode log-uniform scale of kp/kv (+-this, e.g. 0.3)")
     a = ap.parse_args()
     out = ROOT / "data/raw" / (a.run or f"{a.mode}_seed{a.seed}"); out.mkdir(parents=True, exist_ok=True)
     sim = GT.Sim(); m, d = sim.m, sim.d; rng = np.random.default_rng(a.seed)
     ex = E.Expert(sim, rng); rand = Randomizer(m); jm = JointMapping.from_files()
     renderer = mujoco.Renderer(m, H, W)
+    servo = None
+    if a.servo:
+        import servo_model
+        servo = servo_model.load(a.servo); servo_model.apply_params(m, servo); sim.set_comp(servo); print(f"servo model: {a.servo} (jitter {a.servo_jitter})")
     arm_q = list(sim.qadr) + [sim.gadr]; act_ids = [sim.act[j] for j in JOINT_NAMES]
     written, attempts, fails = len(list(out.glob("ep_*"))), 0, {}
     if written:                                   # resuming: don't replay the same random draws
@@ -114,6 +120,9 @@ def main():
                                    hard_p=a.hard_p, tall_p=a.tall_p)
             kind = "v1"
         rparams = rand.apply(rng)
+        if servo and a.servo_jitter > 0:
+            sp = servo_model.jitter(servo, rng, a.servo_jitter); servo_model.apply_params(m, sp)
+            rparams["servo"] = {j: [round(v[0], 2), round(v[1], 3)] for j, v in sp.items()}
         ep = out / f"ep_{written:06d}"; tmp = out / f".tmp_{written:06d}"
         shutil.rmtree(tmp, ignore_errors=True); tmp.mkdir()
         vf, vw = VideoWriter(tmp / "front.mp4"), VideoWriter(tmp / "wrist.mp4")

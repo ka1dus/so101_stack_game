@@ -23,7 +23,7 @@ from joint_mapping import JOINT_NAMES  # noqa: E402
 from perception.drop import Kinematics  # noqa: E402
 from perception.hand import HandMonitor  # noqa: E402
 from perception.register import refine  # noqa: E402
-from perception.stack import AREA, SUPPLY, collapse_check, features  # noqa: E402
+from perception.stack import AREA, SUPPLY, collapse_check, features, turn_check  # noqa: E402
 from perception.supply import BOX, SupplyMonitor  # noqa: E402
 from perception.twin import Twin, arm_mask  # noqa: E402
 from perception_eval import template_poses  # noqa: E402
@@ -83,6 +83,7 @@ def main():
     twh, kin = Twin(scale=2), Kinematics()
     P(); P("per clip (collapse call / hand / supply):")
     res = {}
+    res2 = {}
     for name, c in CLIPS.items():
         fr = read(name); n = len(fr)
         # ---- 4. hand
@@ -121,7 +122,10 @@ def main():
             stack = c["stack"]; z_top = z_of(stack); frames = fr[-SETTLE:]
             f = features(cam, ref, before, frames, z_top, 0.0, arm_mask=home_mask); note = ""
         col, why = collapse_check(f)
+        top_t = kind(stack[-1]) if stack else None
+        ok2, why2, f2 = turn_check(cam, ref, before, frames[-1], z_top, top_t, new_t if c["kind"] == "human" else None, arm_mask=home_mask)
         want = c["kind"] in ("collapse", "moved")           # game rule: the top moving > 15 mm is a loss too
+        res2[name] = (not ok2) == want
         call = ("COLLAPSE: " + ", ".join(why)) if col else "standing"
         ok = col == want
         slide = ""
@@ -131,18 +135,22 @@ def main():
                 fs = features(cam, ref, before, fr[s:s + SETTLE], z_top, 0.0, arm_mask=home_mask)
                 cc, ww = collapse_check(fs); calls.append((s / FPS, cc, ww))
             bad = [(t, w) for t, cc, w in calls if cc]
+            bad2 = [s_ for s_ in range(30, n - SETTLE + 1, 30) if not turn_check(cam, ref, before, fr[s_ + SETTLE - 1], z_top, top_t, None, arm_mask=home_mask)[0]]
+            res2[name] = res2[name] and not bad2; slide2 = f"; turn_check sliding windows: {len(bad2)} false calls"
             slide = f"; sliding windows: {len(bad)}/{len(calls)} false calls" + (f" e.g. at {bad[0][0]:.0f} s: {bad[0][1]}" if bad else "")
             ok = ok and not bad
         res[name] = ok
         P(f"  {name:14s} truth: {c['truth']}")
         P(f"    call {call}{note} -> {'OK' if ok else 'WRONG'}{slide}")
+        P(f"    turn_check: {'standing' if ok2 else 'COLLAPSE: ' + ', '.join(why2)} -> {'OK' if res2[name] else 'WRONG'}"
+          f"{slide2 if c['kind'] == 'static' else ''} (fit {f2['fit']:.2f}, off {f2['off_mm']:.0f} mm, edges {f2['blob']}, stack {f2['stack_change']:.2f})")
         P(f"    features: shift {f['shift_mm']} mm (score {f['shift_score']}), outside {f['outside']} px, rise {f['top_rise_px']} px"
           f" (expected {f['top_rise_expected_px']}), cover {f['on_top_cover']}, vanished {f['vanished']}")
         P(f"    {hand}"); P(f"    supply: {supply}")
         strip = np.hstack([cv2.resize(x, (320, 240)) for x in (ref, before, frames[-1])])
         cv2.putText(strip, f"{name}: {call[:60]}", (5, 20), 0, 0.5, (0, 0, 255), 1)
         cv2.imwrite(str(ROOT / f"notes/img/phase7_real_{name}.png"), strip)
-    P(); P(f"collapse calls correct: {sum(res.values())}/{len(res)}")
+    P(); P(f"collapse calls correct: {sum(res.values())}/{len(res)}; turn_check: {sum(res2.values())}/{len(res2)}")
     (ROOT / "notes/phase7_real_clips.txt").write_text("\n".join(L) + "\n")
 
 

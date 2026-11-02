@@ -34,6 +34,7 @@ REACH_MAX = 0.29          # m from the pan axis: vertical grasp IK fails from ~2
 _sweep = np.load(ROOT / "notes/phase3_reach_bruteforce.npy")      # r, z, tilt, lift, elbow, wrist (sim rad)
 VERT = _sweep[_sweep[:, 2] < 2.0]
 MAX_SPEED = np.radians(60)
+MAX_REL_RAD = np.radians(10.0)   # real arm: max_relative_target 10 (degrees for body joints)
 
 
 class Sim:
@@ -58,24 +59,45 @@ class Sim:
         self.plan_q = None; self.plan_g = None
         self.noise_sigma = np.radians(2.0); self.noise_tau = 0.5; self.noise_fade = 0.3
         self._nx = np.zeros(5); self._gain = 0.0; self._gain_target = 0.0; self.noise_rng = np.random.default_rng(0)
+        # soft-servo compensation (Phase 8 servo fit): command = plan + (gravity + kv * plan velocity) / kp, at most
+        # MAX_REL_RAD from the present reading (the real arm's max_relative_target). None = stiff servos, command = plan.
+        self.comp = None; self._prev_plan = None; self._cmd = None
 
     def sync_plan(self):
         """Take the current actuator targets as the plan (call after writing d.ctrl directly)."""
         self.plan_q = np.array([self.d.ctrl[self.act[j]] for j in self.arm]); self.plan_g = float(self.d.ctrl[self.act["gripper"]])
+        self._prev_plan = None; self._cmd = None
 
     def set_noise(self, on):
         """Fade the execution noise in/out over noise_fade seconds (the OU state keeps evolving)."""
         self._gain_target = 1.0 if on else 0.0
 
+    def set_comp(self, params):
+        """params: {joint: (kp, kv, force)} of the servo model the expert assumes (None: off)."""
+        self.comp = None if params is None else (np.array([params[j][0] for j in self.arm]), np.array([params[j][1] for j in self.arm]))
+        self._prev_plan = None; self._cmd = None
+
+    def _compensate(self, q_plan):
+        """The arm command for a planned pose: gravity + damping feed-forward of the assumed servos, clipped to the reading."""
+        k = self.kin; k.qpos[:] = self.d.qpos; k.qpos[self.qadr] = q_plan; k.qvel[:] = 0
+        mujoco.mj_forward(self.m, k)
+        dof = [self.m.jnt_dofadr[self.m.joint(j).id] for j in self.arm]
+        qd = np.zeros(5) if self._prev_plan is None else (q_plan - self._prev_plan) * CTRL_HZ
+        kp, kv = self.comp; q = self.d.qpos[self.qadr]
+        return np.clip(q_plan + (k.qfrc_bias[dof] + kv * qd) / kp, q - MAX_REL_RAD, q + MAX_REL_RAD)
+
     def clean_ctrl(self):
-        """The planned targets in JOINT_NAMES order (the action label); equals d.ctrl when noise is off."""
-        return np.r_[self.plan_q, self.plan_g]
+        """The commanded targets without DART noise in JOINT_NAMES order (the action label); equals d.ctrl when noise is off."""
+        return np.r_[self._cmd if self._cmd is not None else self.plan_q, self.plan_g]
 
     def _apply(self):
         dt = 1.0 / CTRL_HZ
         self._nx += -self._nx / self.noise_tau * dt + self.noise_sigma * np.sqrt(2 / self.noise_tau * dt) * self.noise_rng.standard_normal(5)
         self._gain += np.clip(self._gain_target - self._gain, -dt / self.noise_fade, dt / self.noise_fade)
         q = np.clip(self.plan_q + self._gain * self._nx, self.rng_lim[:, 0], self.rng_lim[:, 1])
+        if self.comp is not None:
+            self._cmd = np.clip(self._compensate(self.plan_q), self.rng_lim[:, 0], self.rng_lim[:, 1])
+            q = np.clip(self._cmd + self._gain * self._nx, self.rng_lim[:, 0], self.rng_lim[:, 1]); self._prev_plan = self.plan_q.copy()
         for j, v in zip(self.arm, q):
             self.d.ctrl[self.act[j]] = v
         self.d.ctrl[self.act["gripper"]] = self.plan_g

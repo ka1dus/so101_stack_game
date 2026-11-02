@@ -1,0 +1,26 @@
+status: proposal (not applied to scene.xml)
+segments:
+- 20261027_121433_empty.npz
+- 20261027_121605_box.npz
+- 20261027_115530/t001_trace.npy[:12s]
+joints:
+  shoulder_pan:
+    kp: 34.33
+    kv: 2.659
+    force: 3.35
+  shoulder_lift:
+    kp: 34.33
+    kv: 2.659
+    force: 3.35
+  elbow_flex:
+    kp: 21.21
+    kv: 2.659
+    force: 3.35
+  wrist_flex:
+    kp: 13.1
+    kv: 0.707
+    force: 3.35
+  wrist_roll:
+    kp: 21.21
+    kv: 2.659
+    force: 3.35

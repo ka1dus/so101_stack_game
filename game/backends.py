@@ -48,7 +48,7 @@ class RealBackend:
         self.no_motion = no_motion
 
     def frame(self):
-        return cv2.cvtColor(undistort_front(self.arm.read()[1]), cv2.COLOR_RGB2BGR)
+        return cv2.cvtColor(undistort_front(self.arm.front()), cv2.COLOR_RGB2BGR)   # waits through a camera reset
 
     def joints(self):
         return self.arm.joints()
@@ -85,6 +85,7 @@ class SimArm:
         return self.g.q_real()
 
     def send(self, q):
+        self.last_cmd = np.asarray(q, float).copy()
         s = self.g.sim; s.d.ctrl[self.act] = np.clip(self.jm.real_to_sim(np.asarray(q, float)), self.clo, self.chi)
         s.sync_plan()                                       # later sim.wait() calls hold this command
         for _ in range(s.steps_per_ctrl):
@@ -94,11 +95,18 @@ class SimArm:
     def hold(self):
         self.send(self.joints())
 
+    def camera(self, name, max_age_s=None):
+        """RealArm-compatible frame (RGB); the sim never stalls."""
+        return cv2.cvtColor(self.g.front(), cv2.COLOR_BGR2RGB) if name == "front" else self.g.wrist()
+
+    def wait_cameras(self, names=("front", "wrist")):
+        return None
+
 
 class SimBackend:
     scripted_human = True
 
-    def __init__(self, policy_path, device="mps", seed=12001, video=None):
+    def __init__(self, policy_path, device="mps", seed=12001, video=None, servos="fit"):
         import game_states as G
         import grasp_test as GT
         from perception.drop import Kinematics
@@ -108,11 +116,20 @@ class SimBackend:
         self.G = G; sim = GT.Sim(); rand = Randomizer(sim.m); ren = mujoco.Renderer(sim.m, H, W)
         self.game = Game(sim, rand, ren, Twin(), Kinematics(), None, np.random.default_rng(seed), video=video)
         self.arm = SimArm(self.game); self.home = self.game.jm.sim_to_real(sim.home); self.t = 0.0
+        # the real arm's soft servos (sim/assets/servo_fit.yaml), as the current policies were trained and tested with;
+        # servos="stiff" keeps the vendor model (the Phase 9 sim games ran that way)
+        import servo_model
+        self.servo = None if servos == "stiff" else servo_model.load(str(ROOT / "sim/assets/servo_fit.yaml"))
 
     # world bookkeeping (mirrors sim_game.Game.play)
     def prepare_game(self):
         g = self.game; G = self.G; sim, m, d, rng = g.sim, g.sim.m, g.sim.d, g.rng
-        g.rand.apply(rng); start = G.layout_supply(rng)
+        g.rand.apply(rng); start = None
+        while start is None:                                # (None when a jittered box would overlap: try again)
+            start = G.layout_supply(rng)
+        if self.servo is not None:
+            import servo_model
+            servo_model.apply_params(m, self.servo)
         for i, b in enumerate(start):
             b.slot = i + 1
         st = G.State(supply=start); mujoco.mj_resetData(m, d); G.assign_bodies(st, m); G.apply(st, m, d)

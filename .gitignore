@@ -6,3 +6,4 @@ _to_delete/
 .pytest_cache/
 MUJOCO_LOG.TXT
 logs/
+outputs/

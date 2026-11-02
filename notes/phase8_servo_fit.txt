@@ -1,0 +1,9 @@
+segments: ['20261027_121433_empty.npz', '20261027_121605_box.npz', '20261027_115530/t001_trace.npy[:12s]']
+start (scene.xml) error per joint [0.58, 1.01, 2.17, 1.02, 0.3] mean 1.02
+round 1: error per joint [0.37, 0.66, 1.3, 0.67, 0.19] mean 0.64
+round 2: error per joint [0.37, 0.66, 1.3, 0.58, 0.19] mean 0.62
+  shoulder_pan: kp 34.3 N.m/rad, kv 2.66 N.m.s/rad, force cap 3.35 N.m
+  shoulder_lift: kp 34.3 N.m/rad, kv 2.66 N.m.s/rad, force cap 3.35 N.m
+  elbow_flex: kp 21.2 N.m/rad, kv 2.66 N.m.s/rad, force cap 3.35 N.m
+  wrist_flex: kp 13.1 N.m/rad, kv 0.71 N.m.s/rad, force cap 3.35 N.m
+  wrist_roll: kp 21.2 N.m/rad, kv 2.66 N.m.s/rad, force cap 3.35 N.m

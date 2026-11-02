@@ -7,7 +7,7 @@ are applied by `post_front()` / `post_wrist()` on the rendered frames.
 
 Ranges:
   front camera   position +-1 cm per axis, rotation <= 1.5 deg about a random axis
-  wrist camera   position +-3 mm per axis, rotation <= 1 deg, f 518 px +-5 %, k1 in [-0.05, 0.05]
+  wrist camera   position +-3 mm per axis, rotation <= 1 deg, f (cameras.yaml, 508 px) +-5 %, k1 in [-0.05, 0.05]; blur sigma 0.6-2.5 px
                  (no checkerboard calibration: Decisions log 2026-10-21)
   lights         ceiling/fill/headlight intensity, ceiling position +-20 cm
   colours        white table, black mat/backdrop, yellow tape, reach-line tape, floor: around the real values
@@ -110,8 +110,10 @@ class Randomizer:
         # image-space augmentation (per camera): brightness, contrast, saturation, gamma, blur, noise
         self.img = {}
         for cam in ("front", "wrist"):
+            # wrist: the real Gemini 2 is out of focus at close range (about sigma 2 px at 640x480, notes/phase8.md section 10)
+            blurs = [0.6, 1.0, 1.5, 2.0, 2.5] if cam == "wrist" else [0, 0, 0.6, 1.0, 1.5]
             self.img[cam] = dict(bright=rng.uniform(-0.08, 0.08), contrast=rng.uniform(0.8, 1.1), sat=rng.uniform(0.6, 1.05),
-                                 gamma=rng.uniform(0.85, 1.15), blur=float(rng.choice([0, 0, 0.6, 1.0, 1.5])),
+                                 gamma=rng.uniform(0.85, 1.15), blur=float(rng.choice(blurs)),
                                  noise=rng.uniform(0, 0.02))
         p["image_aug"] = {c: {k: round(float(v), 3) for k, v in d.items()} for c, d in self.img.items()}
         # boxes: tint per type, sometimes a plain colour

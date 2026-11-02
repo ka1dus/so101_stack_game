@@ -21,6 +21,7 @@ import yaml
 
 from perception.camera import ROOT
 from perception.drop import DropMonitor
+from skill.cameras import CameraStale
 
 import sys
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -31,6 +32,8 @@ MAX_REL = 10.0             # LeRobot units per tick (training clip and the arm's
 SKILL_T_MAX = 25.0
 RAISE_M = 0.035
 RELEASE_HOLD_S = 1.5
+OPEN_MIN = 32.0            # gripper opening before the scripted home: ~58 mm at the tips, > every box width (no3 40 mm)
+HOLD_MIN = 8.0             # gripper reading above this with the jaws blocked = still holding a box (no10 contact ~15)
 HOME_SPEED = 30.0          # LeRobot units per second for scripted moves (so101_go_home.py default)
 LIFT_M = 0.06              # tips raised straight up before going home after a drop or a timeout
 RESIZE = (320, 240)
@@ -79,30 +82,85 @@ def safety_check(kin, q):
     return None
 
 
+CAM_MAX_AGE_S = 0.5        # a frame older than this is not used (LeRobot's default staleness limit)
+CAM_STATUS_EVERY_S = 3.0
+
+
 class RealArm:
-    """SO101Follower with the `front` and `wrist` cameras at the recording settings (640x480, 30 fps)."""
+    """SO101Follower (joints over the bus) + the `front` and `wrist` cameras, each captured in a supervised child
+    process opened by device name (skill/cameras.py; 640x480, RGB). Camera reads never block or crash: `camera()`
+    raises CameraStale at once when no fresh frame exists, `wait_cameras()` waits (printing why) until both are back.
+    front/wrist: kept for the old call signature; front=None means joints only, other values are ignored (the
+    cameras are found by name, never by OpenCV index, which changes when a USB camera re-enumerates)."""
 
     def __init__(self, port, robot_id, front=0, wrist=1):
-        from lerobot.cameras.opencv import OpenCVCameraConfig
         from lerobot.robots.so_follower import SO101Follower, SO101FollowerConfig
-        cams = {"front": OpenCVCameraConfig(index_or_path=front, fps=FPS, width=640, height=480),
-                "wrist": OpenCVCameraConfig(index_or_path=wrist, fps=FPS, width=640, height=480)}
+        self.with_cams = front is not None
         self.robot = SO101Follower(SO101FollowerConfig(port=port, id=robot_id, max_relative_target=MAX_REL,
-                                                       disable_torque_on_disconnect=False, cameras=cams))
+                                                       disable_torque_on_disconnect=False, cameras={}))
         self.jm = JointMapping.from_files(); self.lo, self.hi = self.jm.lerobot_limits().T
+        self.cams = {}; self._last = {}
 
     def connect(self):
         self.robot.connect()
+        if self.with_cams:
+            from skill.cameras import CameraSupervisor
+            self.cams = {n: CameraSupervisor(n) for n in ("front", "wrist")}
+            self.wait_cameras()
 
     def disconnect(self):
+        for c in self.cams.values():
+            c.close()
         self.robot.disconnect()
 
+    def camera(self, name, max_age_s=CAM_MAX_AGE_S):
+        """Fresh frame or CameraStale (never waits)."""
+        f = self.cams[name].latest(max_age_s); self._last[name] = f
+        return f
+
+    def wait_cameras(self, names=("front", "wrist")):
+        """Block until every named camera has a fresh frame; status every CAM_STATUS_EVERY_S. Ctrl-C still works."""
+        t0 = time.monotonic(); said = -1
+        while True:
+            stale = []
+            for n in names:
+                try:
+                    self.camera(n)
+                except CameraStale as e:
+                    stale.append(str(e))
+            if not stale:
+                if said >= 0:
+                    print(f"  cameras back after {time.monotonic() - t0:.1f} s", flush=True)
+                return
+            k = int((time.monotonic() - t0) / CAM_STATUS_EVERY_S)
+            if k != said:
+                said = k
+                print(f"  waiting for camera(s): {'; '.join(stale)}"
+                      f"{' -- if this lasts, re-plug that camera (the session keeps waiting)' if k >= 3 else ''}", flush=True)
+            time.sleep(0.05)
+
+    def frames_or_last(self):
+        """(front, wrist) now if fresh, else the last good frames (recording only; never waits)."""
+        out = []
+        for n in ("front", "wrist"):
+            try:
+                out.append(self.camera(n))
+            except CameraStale:
+                out.append(self._last.get(n, np.zeros((480, 640, 3), np.uint8)))
+        return tuple(out)
+
     def read(self):
-        o = self.robot.get_observation()
-        return np.array([o[f"{j}.pos"] for j in JOINT_NAMES], float), o["front"], o["wrist"]
+        """Joint reading + fresh front + wrist frames; CameraStale if a camera has no fresh frame."""
+        return self.joints(), self.camera("front"), self.camera("wrist")
 
     def joints(self):
-        return self.read()[0]
+        """Joint reading only (no camera frames): homing and the scripted place keep working if a camera stalls."""
+        o = self.robot.bus.sync_read("Present_Position", num_retry=self.robot.config.num_read_retries)
+        return np.array([o[j] for j in JOINT_NAMES], float)
+
+    def front(self):
+        """Fresh front frame (waits for it)."""
+        self.wait_cameras(("front",)); return self.camera("front")
 
     def send(self, q):
         self.robot.send_action({f"{j}.pos": float(v) for j, v in zip(JOINT_NAMES, q)})
@@ -161,6 +219,25 @@ def go_home(arm, kin, home, lift=False, paused=None):
     return move_to(arm, home, kin, paused=paused)
 
 
+def open_before_home(arm, kin, trace, released, paused=None):
+    """Before the scripted home, make sure the box is out of the jaws.
+    released=True (the runner saw the policy open over the stack): open to at least OPEN_MIN where the arm is, because
+    the policy opens relative to the held reading (it learned ~+5 units) and a box squeezed or pinched near one end
+    can stay wedged (real 29 Oct t1: held at 16.9, opened to 21.5, a no3 needs > 24).
+    released=False (timeout / guard): if the gripper reads > HOLD_MIN (closed on nothing reads ~0-4): open to
+    max(OPEN_MIN, reading + 12). (A "blocked" test against the last command missed boxes held loosely: real 29 Oct
+    12:54 t5-t8, policy hovering with command ~ reading ~ 20, carried home.)
+    Opens slowly, waits 1 s. Returns the gripper reading it opened from, or None."""
+    q = arm.joints()
+    if q[5] >= OPEN_MIN or (not released and q[5] < HOLD_MIN):
+        return None
+    goal = q.copy(); goal[5] = min(max(OPEN_MIN, q[5] + 12), arm.hi[5])
+    move_to(arm, goal, kin, speed=HOME_SPEED / 2, paused=paused)
+    if not getattr(arm, "virtual", False):
+        time.sleep(1.0)
+    return float(q[5])
+
+
 def load_policy(path, device="mps"):
     from lerobot.configs.policies import PreTrainedConfig
     from lerobot.policies.factory import get_policy_class, make_pre_post_processors
@@ -172,7 +249,9 @@ def load_policy(path, device="mps"):
     return policy, pre, post
 
 
-def run_place_skill(arm, policy, kin, top_xy, top_face, move=True, t_max=SKILL_T_MAX, record=None, on_tick=None, paused=None):
+def run_place_skill(arm, policy, kin, top_xy, top_face, move=True, t_max=SKILL_T_MAX, record=None, on_tick=None, paused=None,
+                    state_fn=None, front_fn=None, act_fn=None, release_floor=None,
+                    handover_lift=None):
     """Run the skill from home. top_xy / top_face: the stack top from perception (m). record: list to append
     (front_undistorted_bgr, wrist_bgr) frames to. on_tick(front_bgr, q): called every tick with the undistorted front
     frame and the reading (hand check, live view). paused(): while it returns True the arm holds where it is and the
@@ -185,10 +264,21 @@ def run_place_skill(arm, policy, kin, top_xy, top_face, move=True, t_max=SKILL_T
     pol, pre, post = policy; pol.reset(); pre.reset(); post.reset()
     pinhole, virtual = getattr(arm, "pinhole_front", False), getattr(arm, "virtual", False)
     mon = DropMonitor(kin, top_xy, top_face); rel_z = rel_k = None; event = "timeout"; trace = []; g_cmd = None; dts = []
-    was_paused = False; pauses = 0; paused_ticks = 0
+    was_paused = False; pauses = 0; paused_ticks = 0; held = None; cam_t0 = 0.0
     while len(dts) < int(t_max * FPS):
         t0 = time.perf_counter()
-        q, front, wrist = arm.read()
+        try:
+            q, front, wrist = arm.read()
+        except CameraStale as e:                            # a camera is resetting: hold still, then plan afresh
+            if not was_paused:
+                held = arm.joints(); arm.send(held); was_paused = True; pauses += 1; cam_t0 = time.monotonic()
+                print(f"  camera stall during the skill: holding still ({e})", flush=True)
+            else:
+                arm.send(held)
+                if time.monotonic() - cam_t0 > CAM_STATUS_EVERY_S:
+                    cam_t0 = time.monotonic(); print(f"  still holding for the camera: {e}", flush=True)
+            paused_ticks += 1; time.sleep(1 / FPS)
+            continue
         fr = front if pinhole else undistort_front(front)
         if on_tick is not None:
             on_tick(cv2.cvtColor(fr, cv2.COLOR_RGB2BGR), q)
@@ -201,24 +291,32 @@ def run_place_skill(arm, policy, kin, top_xy, top_face, move=True, t_max=SKILL_T
             if not virtual:
                 time.sleep(max(0.0, 1 / FPS - (time.perf_counter() - t0)))
             continue
-        if was_paused:                                      # resume: plan afresh from what the cameras see now
+        if was_paused:                                      # resume (pause or camera back): plan afresh
             pol.reset(); pre.reset(); post.reset(); was_paused = False
         if g_cmd is not None:                               # drop_check on this reading and the last command
             ev = mon.tick(q, g_cmd)
             if ev and ev.startswith("drop"):
                 event = ev; break
+            if handover_lift is not None and mon.carrying and kin.tip_pos(q)[2] > mon.close_z + handover_lift:
+                event = "handover"; break                   # a scripted place takes over (skill/scripted_place.py)
             if ev == "released":
                 tip = kin.tip_pos(q)
                 if rel_z is None:
                     rel_z, rel_k = tip[2], len(trace)
                 if tip[2] > rel_z + RAISE_M or len(trace) - rel_k >= RELEASE_HOLD_S * FPS:
                     event = "released"; break
-        f = cv2.resize(fr, RESIZE, interpolation=cv2.INTER_AREA); w = cv2.resize(wrist, RESIZE, interpolation=cv2.INTER_AREA)
-        obs = {"observation.state": torch.from_numpy(q.astype(np.float32))[None],
+        fp = fr if front_fn is None else front_fn(fr, q)          # e.g. skill.plain_wall.PlainWall (real arm)
+        f = cv2.resize(fp, RESIZE, interpolation=cv2.INTER_AREA); w = cv2.resize(wrist, RESIZE, interpolation=cv2.INTER_AREA)
+        qs = q if state_fn is None else state_fn(q)             # sim tests only: alter what the policy reads
+        obs = {"observation.state": torch.from_numpy(qs.astype(np.float32))[None],
                "observation.images.front": torch.from_numpy(f).permute(2, 0, 1)[None].float() / 255,
                "observation.images.wrist": torch.from_numpy(w).permute(2, 0, 1)[None].float() / 255, "task": [TASK]}
         with torch.inference_mode():
             a = post(pol.select_action(pre(obs))).squeeze(0).float().cpu().numpy()
+        if act_fn is not None:                                  # e.g. skill.grip_floor.GripFloor
+            a = act_fn(a, q)
+        if release_floor is not None and rel_z is not None:   # the release has begun over the stack: open at least this far
+            a = a.copy(); a[5] = max(a[5], release_floor)       # (real 29 Oct: the policy opened only 17 -> 21-25 for a no3)
         a = np.clip(np.clip(a, q - MAX_REL, q + MAX_REL), arm.lo, arm.hi)
         why = safety_check(kin, a)
         if why:

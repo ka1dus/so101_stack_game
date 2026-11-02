@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT)); sys.path.insert(0, str(ROOT / "scripts"))
 from game.controller import Controller  # noqa: E402
 from ui.display import UI, NullUI  # noqa: E402
 
-POLICY = ROOT / "data/policies/act_v4_ft_040000"
+POLICY = ROOT / "data/policies/act_wcal_060000"   # the Phase 8 trial policy (calibrated wrist camera, soft servos)
 
 
 def main():

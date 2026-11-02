@@ -1,64 +1,75 @@
-refit on ref_supply_full: moved [-4.7, 2.6, 10.7] mm / [-0.302, -0.352, -0.169] deg; mask cost 0.2697 -> 0.1175
-refit on ref_empty:       moved [-1.5, -2.6, 11.8] mm / [-0.407, -0.091, -0.408] deg; mask cost 0.2196 -> 0.0663
-  the two refits project the mat and stack-area corners 2.5 px apart (max)
-slots in ref_supply_full: 8/8 correct; dark share per slot 1:0.00 2:0.00 3:0.00 4:0.00 5:0.00 6:0.01 7:0.00 8:0.00
-slots in ref_empty: 8/8 correct; dark share per slot 1:1.00 2:0.83 3:1.00 4:1.00 5:1.00 6:1.00 7:1.00 8:1.00
+refit on ref_supply_full: moved [-9.6, -1.4, 14.0] mm / [0.189, -0.076, -0.301] deg; mask cost 0.2697 -> 0.1164
+refit on ref_empty:       moved [-1.0, -3.0, 11.7] mm / [-0.41, -0.053, -0.339] deg; mask cost 0.2196 -> 0.0663
+  the two refits project the mat and stack-area corners 4.0 px apart (max)
+slots in ref_supply_full: 8/8 correct; dark share per slot 1:0.00 2:0.00 3:0.00 4:0.00 5:0.00 6:0.01 7:0.01 8:0.00
+slots in ref_empty: 8/8 correct; dark share per slot 1:1.00 2:0.74 3:1.00 4:1.00 5:1.00 6:1.00 7:1.00 8:1.00
 
 per clip (collapse call / hand / supply):
   static_h2      truth: no collapse
     call standing -> OK; sliding windows: 0/17 false calls
+    turn_check: standing -> OK; turn_check sliding windows: 0 false calls (fit 1.00, off 0 mm, edges 7, stack 0.00)
     features: shift 0.0 mm (score 1.0), outside 0 px, rise 0.0 px (expected 0.0), cover None, vanished 24
     no hand expected; flagged outside: 74 frames (15.5-17.9 s)
     supply: slots emptied [], filled []
   static_h4      truth: no collapse
-    call standing -> OK; sliding windows: 0/17 false calls
+    call standing -> WRONG; sliding windows: 1/17 false calls e.g. at 9 s: ['changed below/beside the new box']
+    turn_check: standing -> OK; turn_check sliding windows: 0 false calls (fit 1.00, off 0 mm, edges 0, stack 0.00)
     features: shift 0.0 mm (score 1.0), outside 0 px, rise 0.0 px (expected 0.0), cover None, vanished 66
     no hand expected; flagged outside: 74 frames (11.0-13.4 s)
     supply: slots emptied [], filled []
   static_h6      truth: no collapse
     call standing -> OK; sliding windows: 0/17 false calls
+    turn_check: standing -> OK; turn_check sliding windows: 0 false calls (fit 1.00, off 0 mm, edges 4, stack 0.00)
     features: shift 0.0 mm (score 1.0), outside 0 px, rise 0.0 px (expected 0.0), cover None, vanished 160
     no hand expected; flagged outside: 102 frames (11.2-14.6 s)
     supply: slots emptied [], filled []
   human_turn_1   truth: placed, no collapse
     call standing (settle window 3.0 s; new box no10 from the slot) -> OK
-    features: shift 0.0 mm (score 1.0), outside 0 px, rise 8.0 px (expected 9.9), cover 0.739, vanished 196
+    turn_check: standing -> OK (fit 0.71, off 9 mm, edges 50, stack 0.00)
+    features: shift 0.0 mm (score 1.0), outside 0 px, rise 8.0 px (expected 9.9), cover 0.718, vanished 196
     hand seen (4.8-9.5 s); flagged outside: 84 frames (9.5-12.3 s)
     supply: slots emptied [8], filled []
   human_turn_2   truth: placed, no collapse
     call standing (settle window 1.5 s; new box no3 from the slot) -> OK
-    features: shift 0.0 mm (score 1.0), outside 0 px, rise 18.0 px (expected 13.3), cover 0.711, vanished 169
+    turn_check: standing -> OK (fit 0.68, off 26 mm, edges 151, stack 0.00)
+    features: shift 0.0 mm (score 1.0), outside 0 px, rise 18.0 px (expected 13.3), cover 0.694, vanished 169
     hand seen (3.2-12.5 s); flagged outside: 0 frames
     supply: slots emptied [1], filled []
   human_turn_3   truth: placed, no collapse
     call standing (settle window 3.0 s; new box no3 from the slot) -> OK
-    features: shift 0.0 mm (score 0.999), outside 0 px, rise 18.0 px (expected 13.2), cover 0.699, vanished 163
+    turn_check: standing -> OK (fit 0.67, off 5 mm, edges 91, stack 0.00)
+    features: shift 0.0 mm (score 0.999), outside 0 px, rise 18.0 px (expected 13.3), cover 0.689, vanished 163
     hand seen (0.5-8.0 s); flagged outside: 101 frames (0.5-11.3 s)
     supply: slots emptied [1], filled []
   human_turn_4   truth: placed, no collapse
     call standing (settle window 3.0 s; new box no35 from the slot) -> OK
-    features: shift 0.0 mm (score 0.999), outside 0 px, rise 14.0 px (expected 12.5), cover 0.688, vanished 317
+    turn_check: standing -> OK (fit 0.66, off 26 mm, edges 28, stack 0.00)
+    features: shift 0.0 mm (score 0.999), outside 0 px, rise 14.0 px (expected 12.5), cover 0.679, vanished 317
     hand seen (2.4-6.5 s); flagged outside: 0 frames
     supply: slots emptied [6], filled []
   collapse_h3    truth: collapse (all boxes on the table)
-    call COLLAPSE: changed below/beside the new box, stack top 14 px lower than before -> OK
-    features: shift 0.0 mm (score 1.0), outside 2292 px, rise -14.0 px (expected 0.0), cover None, vanished 972
+    call COLLAPSE: changed below/beside the new box, stack top 15 px lower than before -> OK
+    turn_check: COLLAPSE: other change on the table/stack (1094 edge px), old stack moved (37% of it changed) -> OK (fit 1.00, off 0 mm, edges 1094, stack 0.37)
+    features: shift 0.0 mm (score 1.0), outside 2290 px, rise -15.0 px (expected 0.0), cover None, vanished 972
     hand seen (5.1-5.9 s); flagged outside: 0 frames
     supply: slots emptied [], filled []
   collapse_h5    truth: collapse (all boxes on the table)
     call COLLAPSE: changed below/beside the new box -> OK
-    features: shift 0.0 mm (score 0.999), outside 4737 px, rise -4.0 px (expected 0.0), cover None, vanished 3113
+    turn_check: COLLAPSE: other change on the table/stack (1181 edge px), old stack moved (50% of it changed) -> OK (fit 1.00, off 0 mm, edges 1181, stack 0.50)
+    features: shift 0.0 mm (score 0.999), outside 4731 px, rise -4.1 px (expected 0.0), cover None, vanished 3113
     hand seen (4.0-7.0 s); flagged outside: 56 frames (7.0-8.9 s)
     supply: slots emptied [], filled [], unsure [6]
   top_off_h4     truth: collapse (top box pushed onto the table)
     call COLLAPSE: changed below/beside the new box, stack top 10 px lower than before -> OK
-    features: shift 0.0 mm (score 1.0), outside 2151 px, rise -10.0 px (expected 0.0), cover None, vanished 793
+    turn_check: COLLAPSE: other change on the table/stack (746 edge px), old stack moved (18% of it changed) -> OK (fit 1.00, off 0 mm, edges 746, stack 0.18)
+    features: shift 0.0 mm (score 1.0), outside 2161 px, rise -10.0 px (expected 0.0), cover None, vanished 793
     hand seen (3.9-5.1 s); flagged outside: 0 frames
     supply: slots emptied [], filled []
   top_nudged_h4  truth: loss: top box moved ~2 cm (game rule > 15 mm), still on the stack
     call COLLAPSE: changed below/beside the new box -> OK
+    turn_check: COLLAPSE: old stack moved (19% of it changed) -> OK (fit 1.00, off 0 mm, edges 326, stack 0.19)
     features: shift 0.0 mm (score 0.999), outside 1322 px, rise -2.0 px (expected 0.0), cover None, vanished 483
     hand seen (4.1-5.3 s); flagged outside: 0 frames
     supply: slots emptied [], filled []
 
-collapse calls correct: 11/11
+collapse calls correct: 10/11; turn_check: 11/11
